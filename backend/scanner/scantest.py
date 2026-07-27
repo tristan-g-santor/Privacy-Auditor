@@ -20,10 +20,12 @@ def scan(url):
         for h in ["content-security-policy", "strict-transport-security", "set-cookie", "x-frame-options"]:
             if h in headers:
                 print("RES HEADER:", response.url, h, "=", headers[h])
+                result['security_headers'][h] = headers[h]
 
     #Start playwright as p
     #navigate the website and 
     with sync_playwright() as p:
+        #launc a new browser and new page to setup and track network traffic 
         browser = p.chromium.launch()
         context = browser.new_context()
         page = context.new_page()
