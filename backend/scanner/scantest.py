@@ -1,6 +1,6 @@
-import asyncio #built in library to write code using async/wait
-from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
+import asyncio, json #built in library to write code using async/wait
 
+from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
 from playwright.sync_api import sync_playwright # this lets you launch the browser instance
 
 SECURITY_HEADERS_TO_CHECK = [
@@ -23,7 +23,15 @@ SECURITY_HEADERS_TO_CHECK = [
 #we block service works using serviceWorkers: "block"
 def scan(url): 
     #structure for url
-    result = {"url": url, "third_party_domains": set(), "cookies": [], "security_headers": {}}
+    result = {
+        "url": url,
+        #"first_party_domains": urlparse(url).netloc, 
+        "third_party_domains": set(), 
+        "cookies": [], 
+        "security_headers": {}, 
+        "tls_info": {}
+    }
+
     def handle_request(request):
         print("REQ:",request.url)
 
@@ -46,6 +54,11 @@ def scan(url):
         if found:
             result["security_headers"].setdefault(req_domain,{}).update(found)
 
+        #TLS config
+        security_details = response.security_details()
+        if security_details:
+            result["tls_info"][req_domain] = security_details    
+
     #Start playwright as p
     #navigate the website and 
     with sync_playwright() as p:
@@ -61,11 +74,10 @@ def scan(url):
         result["cookies"] = context.cookies()
         browser.close()
 
-
     return result
 
 
 if __name__ == "__main__":
-    output = scan("https://www.cnn.com")
-    print("Test scan output")
-    print(output)
+    output = scan("https://roblox.com/")
+    output["third_party_domains"] = sorted(output["third_party_domains"])
+    print(json.dumps(output, indent=2))
