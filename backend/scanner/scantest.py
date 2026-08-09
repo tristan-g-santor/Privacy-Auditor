@@ -1,7 +1,7 @@
 import asyncio, json #built in library to write code using async/wait
 
 from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
-from playwright.sync_api import sync_playwright # this lets you launch the browser instance
+from playwright.async_api import async_playwright # this lets you launch the browser instance
 
 SECURITY_HEADERS_TO_CHECK = [
     "content-security-policy",
@@ -21,63 +21,56 @@ SECURITY_HEADERS_TO_CHECK = [
 #show every network request the page has fired off when loading the specified website 
 #if a website uses a Service Worker, some requestts can be invisible to that unless
 #we block service works using serviceWorkers: "block"
-def scan(url): 
+async def scan(url):
     #structure for url
     result = {
         "url": url,
-        #"first_party_domains": urlparse(url).netloc, 
-        "third_party_domains": set(), 
-        "cookies": [], 
-        "security_headers": {}, 
+        "third_party_domains": set(),
+        "cookies": [],
+        "security_headers": {},
         "tls_info": {}
     }
 
-    def handle_request(request):
-        print("REQ:",request.url)
+    main_domain = urlparse(url).netloc
 
-    def handle_responses(response):
+    async def handle_responses(response):
         req_domain = urlparse(response.url).netloc
         # Only add if it does not match the main domain
         if req_domain and req_domain != main_domain:
             result["third_party_domains"].add(req_domain)
 
-        
-        #print( "RES: ", response.status, response.url)
         headers = response.headers
-        #hardcoded list of header names to consider 
-        found = {} #collects all matching headers for specific response 
+        #hardcoded list of header names to consider
+        found = {} #collects all matching headers for specific response
         for h in SECURITY_HEADERS_TO_CHECK:
             if h in headers:
-                #print("RES HEADER:", response.url, h, "=", headers[h])
                 found[h] = headers[h]
 
         if found:
-            result["security_headers"].setdefault(req_domain,{}).update(found)
+            result["security_headers"].setdefault(req_domain, {}).update(found)
 
         #TLS config
-        security_details = response.security_details()
+        security_details = await response.security_details()
         if security_details:
-            result["tls_info"][req_domain] = security_details    
+            result["tls_info"][req_domain] = security_details
 
     #Start playwright as p
-    #navigate the website and 
-    with sync_playwright() as p:
-        #launc a new browser and new page to setup and track network traffic 
-        browser = p.chromium.launch()
-        context = browser.new_context()
-        page = context.new_page()   
-        page.on("request", handle_request)
-        page.on("response", handle_responses)   
-        main_domain = urlparse(url).netloc
+    #navigate the website and
+    async with async_playwright() as p:
+        #launch a new browser and new page to setup and track network traffic
+        browser = await p.chromium.launch()
+        context = await browser.new_context()
+        page = await context.new_page()
+        page.on("response", handle_responses)
 
-        page.goto(url)
-        result["cookies"] = context.cookies()
-        browser.close()
+        await page.goto(url)
+        result["cookies"] = await context.cookies()
+        await browser.close()
 
     return result
 
 
 if __name__ == "__main__":
-    output = scan("https://roblox.com/")
+    output = asyncio.run(scan("https://roblox.com/"))
     output["third_party_domains"] = sorted(output["third_party_domains"])
     print(json.dumps(output, indent=2))

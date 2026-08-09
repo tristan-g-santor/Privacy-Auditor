@@ -1,0 +1,44 @@
+#app-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: sans-serif;
+  text-align: left;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+input {
+  flex: 1;
+  padding: 8px;
+}
+
+button {
+  padding: 8px 16px;
+}
+
+.error {
+  color: red;
+}
+
+.counts {
+  list-style: none;
+  padding: 0;
+}
+
+.counts li {
+  padding: 4px 0;
+}
+
+#debug-json {
+  background: #111;
+  color: #0f0;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 12px;
+  margin-top: 12px;
+}
