@@ -1,4 +1,4 @@
-import asyncio, json #built in library to write code using async/wait
+import asyncio, json, tldextract #built in library to write code using async/wait
 
 from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
 from playwright.async_api import async_playwright # this lets you launch the browser instance
@@ -26,6 +26,7 @@ async def scan(url):
     result = {
         "url": url,
         "third_party_domains": set(),
+        "first_party_domains": set(),
         "cookies": [],
         "security_headers": {},
         "tls_info": {}
@@ -35,12 +36,27 @@ async def scan(url):
 
     async def handle_responses(response):
         req_domain = urlparse(response.url).netloc
-        # Only add if it does not match the main domain
-        if req_domain and req_domain != main_domain:
-            result["third_party_domains"].add(req_domain)
+        # Only add if it does not match the main domain (this is a)
+        con_domain = urlparse(response.frame.page.url).netloc
+       
+        #extract the tld domains
+        #A DeprecationWarning is Python's way of saying: "this still works right now, but the library's authors plan to remove it in a future version 
+        #— you should switch to the new name before that happens
+        """main_domain_etld1 = tldextract.extract(main_domain).registered_domain
+            context_etld1 = tldextract.extract(con_domain).registered_domain
+            request_etld1 = tldextract.extract(req_domain).registered_domain
+        """
+        main_domain_etld1 = tldextract.extract(main_domain).top_domain_under_public_suffix
+        context_etld1 = tldextract.extract(con_domain).top_domain_under_public_suffix
+        request_etld1 = tldextract.extract(req_domain).top_domain_under_public_suffix
+        
 
-        headers = response.headers
-        #hardcoded list of header names to consider
+        if context_etld1 and request_etld1 != main_domain_etld1:
+            result["third_party_domains"].add(req_domain)
+        else:
+            result["first_party_domains"].add(req_domain)
+
+        headers = response.headers  #hardcoded list of header names to consider
         found = {} #collects all matching headers for specific response
         for h in SECURITY_HEADERS_TO_CHECK:
             if h in headers:
@@ -71,6 +87,9 @@ async def scan(url):
 
 
 if __name__ == "__main__":
-    output = asyncio.run(scan("https://roblox.com/"))
+    output = asyncio.run(scan("https://www.cnn.com//"))
+    #Converts each set into a sorted list in palce
+    #ssince we cant serialize a python set itll crash with a type error
     output["third_party_domains"] = sorted(output["third_party_domains"])
+    output["first_party_domains"] = sorted(output["first_party_domains"])
     print(json.dumps(output, indent=2))
