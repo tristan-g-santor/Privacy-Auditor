@@ -1,7 +1,9 @@
-import asyncio, json, tldextract, requests #built in library to write code using async/wait
+import asyncio, json, os, tldextract, requests #built in library to write code using async/wait
 
 from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
 from playwright.async_api import async_playwright # this lets you launch the browser instance
+
+
 
 SECURITY_HEADERS_TO_CHECK = [
     "content-security-policy",
@@ -11,6 +13,33 @@ SECURITY_HEADERS_TO_CHECK = [
     "referrer-policy",
     "permissions-policy"
 ]
+
+# Load once at import time 
+ENTITY_MAP_PATH = os.path.join(os.path.dirname(__file__), "entity_map.json")
+with open(ENTITY_MAP_PATH, encoding="utf-8") as f:
+    _ddgo_entity_map = json.load(f)
+
+# Flip {entity name: {properties: [domains]}} into {domain: entity name} for O(1) lookups
+DOMAIN_TO_ENTITY = {}
+for _entity_name, _entity_data in _ddgo_entity_map.items():
+    for _domain in _entity_data.get("properties", []):
+        DOMAIN_TO_ENTITY[_domain] = _entity_name
+
+
+def is_third_party(request_etld1, main_etld1):
+    if not request_etld1:
+        return False
+
+    request_entity = DOMAIN_TO_ENTITY.get(request_etld1)
+    main_entity = DOMAIN_TO_ENTITY.get(main_etld1)
+
+    if request_entity and main_entity:
+        # Both sides are known entities - compare by company, not by domain string
+        return request_entity != main_entity
+
+    # Not in the entity dataset - fall back to registrable-domain comparison
+    return request_etld1 != main_etld1
+
 #referrer-policy — controls how much of the current page's URL leaks to third parties when a user clicks a link or a resource loads. This is arguably one of the most privacy-relevant headers that exists, and it's currently absent from your list.
 #permissions-policy — controls whether the page (or embedded third parties) can access camera, microphone, geolocation, etc. Also directly privacy-relevant.
 
@@ -51,7 +80,7 @@ async def scan(url):
         request_etld1 = tldextract.extract(req_domain).top_domain_under_public_suffix
         
 
-        if context_etld1 and request_etld1 != main_domain_etld1:
+        if is_third_party(request_etld1, main_domain_etld1):
             result["third_party_domains"].add(req_domain)
         else:
             result["first_party_domains"].add(req_domain)
@@ -93,7 +122,7 @@ async def scan(url):
 
 
 if __name__ == "__main__":
-    output = asyncio.run(scan("https://www.roblox.com//"))
+    output = asyncio.run(scan("https://www.roblox.com/home"))
     #Converts each set into a sorted list in palce
     #ssince we cant serialize a python set itll crash with a type error
     output["third_party_domains"] = sorted(output["third_party_domains"])
