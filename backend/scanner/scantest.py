@@ -1,4 +1,4 @@
-import asyncio, json, tldextract #built in library to write code using async/wait
+import asyncio, json, tldextract, requests #built in library to write code using async/wait
 
 from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
 from playwright.async_api import async_playwright # this lets you launch the browser instance
@@ -86,8 +86,14 @@ async def scan(url):
     return result
 
 
+#def audit_domain(): 
+
+
+
+
+
 if __name__ == "__main__":
-    output = asyncio.run(scan("https://www.cnn.com//"))
+    output = asyncio.run(scan("https://www.roblox.com//"))
     #Converts each set into a sorted list in palce
     #ssince we cant serialize a python set itll crash with a type error
     output["third_party_domains"] = sorted(output["third_party_domains"])

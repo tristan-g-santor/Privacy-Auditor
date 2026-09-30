@@ -18,4 +18,5 @@ app.add_middleware(
 async def run_scan(url: str):
     result = await scan(url)
     result["third_party_domains"] = sorted(result["third_party_domains"])
+    result["first_party_domains"] = sorted(result["first_party_domains"])
     return result

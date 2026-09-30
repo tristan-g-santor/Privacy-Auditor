@@ -54,6 +54,7 @@ function App() {
         <div id="results">
           <h2>Results for {result.url}</h2>
           <ul className="counts">
+            <li>First-party domains: {result.first_party_domains.length}</li>
             <li>Third-party domains: {result.third_party_domains.length}</li>
             <li>Cookies: {result.cookies.length}</li>
             <li>Domains with security headers: {Object.keys(result.security_headers).length}</li>
