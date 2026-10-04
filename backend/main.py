@@ -3,7 +3,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from scanner.scantest import scan
+from backend.scanner.engine_populate import scan
 
 app = FastAPI()
 
