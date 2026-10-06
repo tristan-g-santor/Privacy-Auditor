@@ -117,19 +117,29 @@ async def scan(url):
                 },
             }
         result["cookies"] = await context.cookies()
+
+
+        result["final_url"] = page.url
+        site_etld1 = tldextract.extract(urlparse(page.url).hostname or "").top_domain_under_public_suffix
+
+        for host in seen_hosts:
+            request_etld1 = tldextract.extract(host).top_domain_under_public_suffix
+            category = classify_host(host, request_etld1, site_etld1)
+            if category == "third_party":
+                result["third_party_domains"].add(host)
+            elif category == "first_party":
+                result["first_party_domains"].add(host)
+            else:
+                result["unknown_hosts"].add(host)
+    
         await browser.close()
 
     return result
 
 
-#def audit_domain(): 
-
-
-
-
 
 if __name__ == "__main__":
-    output = asyncio.run(scan("https://www.riotgames.com/en"))
+    output = asyncio.run(scan("https://www.roblox.com/home"))
     #Converts each set into a sorted list in palce
     #ssince we cant serialize a python set itll crash with a type error
     output["third_party_domains"] = sorted(output["third_party_domains"])
