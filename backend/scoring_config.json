@@ -1,0 +1,46 @@
+{
+  "category_weights": {
+    "Advertising": 3,
+    "Session Replay": 3,
+    "Analytics": 2,
+    "CDP": 2,
+    "Unclassified": 1
+  },
+  "prevalence_thresholds": {
+    "high": 0.5,
+    "medium": 0.2
+  },
+  "prevalence_modifiers": {
+    "none": 1.0,
+    "high": 1.5,
+    "medium": 1.2,
+    "low": 0.8
+  },
+  "header_weights": {
+    "content-security-policy": 10,
+    "strict-transport-security": 8,
+    "x-frame-options": 5,
+    "referrer-policy": 3,
+    "permissions-policy": 3
+  },
+  "cookie_weights": {
+    "httpOnly": 3,
+    "secure": 3,
+    "sameSite": 2
+  },
+  "tls_weights": {
+    "TLS 1.0": 15,
+    "TLS 1.1": 15,
+    "TLS 1.2": 3
+  },
+  "likelihood_cap": 25,
+  "impact_cap": 25,
+  "likelihood_weight": 0.25,
+  "impact_weight": 0.75,
+  "grade_thresholds": {
+    "A": 90,
+    "B": 75,
+    "C": 60,
+    "D": 40
+  }
+}

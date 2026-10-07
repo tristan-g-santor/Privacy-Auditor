@@ -1,0 +1,25 @@
+{
+  "google-analytics.com": {
+    "categories": [
+      "Advertising",
+      "Analytics",
+      "Audience Measurement",
+      "Third-Party Analytics Marketing"
+    ],
+    "fingerprinting": 1
+  },
+  "stripe.com": {
+    "categories": [
+      "Online Payment",
+      "CDN",
+      "Embedded Content"
+    ],
+    "fingerprinting": 1
+  },
+  "px-cloud.net": {
+    "categories": [
+      "Fraud Prevention"
+    ],
+    "fingerprinting": 3
+  }
+}
