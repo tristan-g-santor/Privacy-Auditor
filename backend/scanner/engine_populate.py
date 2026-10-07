@@ -131,7 +131,9 @@ async def scan(url):
                 result["first_party_domains"].add(host)
             else:
                 result["unknown_hosts"].add(host)
-    
+
+
+        await page.wait_for_timeout(500)  # let any trailing response handlers finish
         await browser.close()
 
     return result

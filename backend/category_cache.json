@@ -21,5 +21,261 @@
       "Fraud Prevention"
     ],
     "fingerprinting": 3
+  },
+  "sentry.io": {
+    "categories": [],
+    "fingerprinting": 0
+  },
+  "googlesyndication.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising"
+    ],
+    "fingerprinting": 3
+  },
+  "criteo.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Analytics",
+      "Third-Party Analytics Marketing"
+    ],
+    "fingerprinting": 1
+  },
+  "pinterest.com": {
+    "categories": [
+      "Social - Share",
+      "CDN",
+      "Embedded Content"
+    ],
+    "fingerprinting": 1
+  },
+  "zeronaught.com": {
+    "categories": [
+      "Fraud Prevention"
+    ],
+    "fingerprinting": 2
+  },
+  "doubleclick.net": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising"
+    ],
+    "fingerprinting": 3
+  },
+  "tapad.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Analytics",
+      "Third-Party Analytics Marketing"
+    ],
+    "fingerprinting": 1
+  },
+  "siteimproveanalytics.io": {
+    "categories": [
+      "Analytics"
+    ],
+    "fingerprinting": 0
+  },
+  "everesttech.net": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Third-Party Analytics Marketing"
+    ],
+    "fingerprinting": 0
+  },
+  "amazon-adsystem.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising"
+    ],
+    "fingerprinting": 2
+  },
+  "tiktok.com": {
+    "categories": [],
+    "fingerprinting": 1
+  },
+  "adobedc.net": {
+    "categories": [],
+    "fingerprinting": 0
+  },
+  "onetrust.io": {
+    "categories": [],
+    "fingerprinting": 0
+  },
+  "branch.io": {
+    "categories": [
+      "Advertising",
+      "Analytics",
+      "Audience Measurement",
+      "Third-Party Analytics Marketing"
+    ],
+    "fingerprinting": 2
+  },
+  "yahoo.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Analytics",
+      "Audience Measurement",
+      "Federated Login"
+    ],
+    "fingerprinting": 1
+  },
+  "reddit.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Analytics",
+      "Audience Measurement",
+      "Third-Party Analytics Marketing",
+      "Social - Comment",
+      "Social - Share",
+      "Badge",
+      "Embedded Content",
+      "Social Network"
+    ],
+    "fingerprinting": 0
+  },
+  "siteimproveanalytics.com": {
+    "categories": [
+      "Analytics"
+    ],
+    "fingerprinting": 2
+  },
+  "facebook.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Ad Fraud",
+      "Analytics",
+      "Audience Measurement",
+      "Federated Login",
+      "Social - Comment",
+      "Social - Share",
+      "Action Pixels",
+      "Badge",
+      "Embedded Content",
+      "Social Network"
+    ],
+    "fingerprinting": 1
+  },
+  "privacymanager.io": {
+    "categories": [
+      "Consent Management Platform"
+    ],
+    "fingerprinting": 2
+  },
+  "onetrust.com": {
+    "categories": [
+      "Embedded Content",
+      "Non-Tracking",
+      "Consent Management Platform"
+    ],
+    "fingerprinting": 1
+  },
+  "app.link": {
+    "categories": [
+      "Advertising",
+      "Analytics",
+      "Audience Measurement",
+      "Third-Party Analytics Marketing"
+    ],
+    "fingerprinting": 0
+  },
+  "demdex.net": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Third-Party Analytics Marketing"
+    ],
+    "fingerprinting": 1
+  },
+  "flashtalking.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Analytics",
+      "Audience Measurement",
+      "Third-Party Analytics Marketing",
+      "Action Pixels",
+      "Embedded Content",
+      "Session Replay"
+    ],
+    "fingerprinting": 2
+  },
+  "cookielaw.org": {
+    "categories": [
+      "Embedded Content",
+      "Non-Tracking",
+      "Consent Management Platform"
+    ],
+    "fingerprinting": 2
+  },
+  "aswpsdkus.com": {
+    "categories": [],
+    "fingerprinting": 2
+  },
+  "google.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Online Payment",
+      "CDN"
+    ],
+    "fingerprinting": 3
+  },
+  "snapchat.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Action Pixels",
+      "Social Network"
+    ],
+    "fingerprinting": 1
+  },
+  "googletagmanager.com": {
+    "categories": [
+      "Ad Motivated Tracking",
+      "Advertising",
+      "Analytics",
+      "Audience Measurement",
+      "Third-Party Analytics Marketing",
+      "Tag Manager"
+    ],
+    "fingerprinting": 2
+  },
+  "bootstrapcdn.com": {
+    "categories": [
+      "CDN"
+    ],
+    "fingerprinting": 1
+  },
+  "fontawesome.com": {
+    "categories": [
+      "CDN"
+    ],
+    "fingerprinting": 1
+  },
+  "cloudflare.com": {
+    "categories": [
+      "Analytics",
+      "CDN",
+      "Embedded Content"
+    ],
+    "fingerprinting": 2
+  },
+  "jquery.com": {
+    "categories": [
+      "CDN"
+    ],
+    "fingerprinting": 1
+  },
+  "gstatic.com": {
+    "categories": [
+      "CDN",
+      "Embedded Content"
+    ],
+    "fingerprinting": 3
   }
 }

@@ -93,8 +93,8 @@ def score_likelihood(tracker_list):
     score = 0
 
     for tracker in tracker_list:
-        category = (tracker.get("categories") or ["Unclassified"])[0]
-        weight = cfg["category_weights"].get(category, 1)
+        categories = tracker.get("categories") or ["Unclassified"]
+        weight = max(cfg["category_weights"].get(c, 1) for c in categories)
 
         prevalence = tracker.get("prevalence")
         if prevalence is None:
@@ -179,11 +179,16 @@ async def compute_score(result):
 
 if __name__ == "__main__":
     import asyncio
+    from scanner.engine_populate import scan
 
-    test_domains = {"google-analytics.com", "js.stripe.com", "client.px-cloud.net"}
-    results = asyncio.run(build_tracker_list(test_domains))
-    for r in results:
-        print(r)
+    async def test():
+        result = await scan("https://www.misp-project.org/feeds/")
+        score_result = await compute_score(result)
+        print(f"Score: {score_result['score']} ({score_result['grade']})")
+        print(f"Breakdown: {score_result['breakdown']}")
+        print("Trackers:")
+        for t in score_result['trackers']:
+            print(" ", t)
+        save_category_cache()
 
-    save_category_cache()
-    print("Cache saved.")
+    asyncio.run(test())
