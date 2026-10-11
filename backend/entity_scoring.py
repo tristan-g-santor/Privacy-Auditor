@@ -182,7 +182,7 @@ if __name__ == "__main__":
     from scanner.engine_populate import scan
 
     async def test():
-        result = await scan("https://www.misp-project.org/feeds/")
+        result = await scan("https://www.kimberly-clark.com/")
         score_result = await compute_score(result)
         print(f"Score: {score_result['score']} ({score_result['grade']})")
         print(f"Breakdown: {score_result['breakdown']}")
