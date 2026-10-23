@@ -1,4 +1,4 @@
-# PrivacyLens — Frontend
+# PrivacyLens: Frontend
 
 React + TypeScript dashboard for the PrivacyLens web privacy auditor.
 
