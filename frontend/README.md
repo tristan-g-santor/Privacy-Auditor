@@ -117,9 +117,9 @@ Response shape the frontend expects:
 
 ## Known limitations
 
-- First party domains displayed as plain hostnames only — no entity enrichment
+- First party domains displayed as plain hostnames only" no entity enrichment
 - Per-tracker risk values computed frontend-side by category (Advertising/Session Replay = high, Analytics = medium, Unclassified = low)
-- Scan history not yet persistent — PostgreSQL integration coming in Q2 Week 3
+- Scan history not yet persistent: PostgreSQL integration coming in Q2 Week 3
 
 ## Related
 
