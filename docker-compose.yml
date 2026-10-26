@@ -1,0 +1,33 @@
+#run from the repo root:  docker compose up --build
+#override credentials with a .env file next to this one (POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB)
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-auditor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-auditor}
+      POSTGRES_DB: ${POSTGRES_DB:-privacy_auditor}
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # scan history survives container restarts
+    ports:
+      - "127.0.0.1:5432:5432"   # localhost only, for psql / running the tests from the host
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-auditor}:${POSTGRES_PASSWORD:-auditor}@db:5432/${POSTGRES_DB:-privacy_auditor}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy   # init_db runs at startup, so wait until Postgres accepts connections
+    restart: unless-stopped
+
+volumes:
+  pgdata:
