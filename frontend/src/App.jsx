@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { mockScans } from './data/mockScans'
 
 const SCAN_STAGES = [
   'Launching browser...',
@@ -123,9 +124,21 @@ function tlsStatus(protocol) {
 }
 
 function App() {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('privacylens-theme') === 'light' ? 'light' : 'dark' }
+    catch { return 'dark' }
+  })
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    try { localStorage.setItem('privacylens-theme', theme) } catch { /* Storage may be unavailable. */ }
+  }, [theme])
   const [url, setUrl] = useState('')
   const [scanningUrl, setScanningUrl] = useState('')
   const [result, setResult] = useState(null)
+  const [reportOpened, setReportOpened] = useState(false)
+  const [gradeFilter, setGradeFilter] = useState('All')
+  const [quickFilters, setQuickFilters] = useState([])
+  const [sort, setSort] = useState('most-recent')
   const [loading, setLoading] = useState(false)
   const [stageIndex, setStageIndex] = useState(0)
   const [error, setError] = useState(null)
@@ -133,7 +146,6 @@ function App() {
 
   useEffect(() => {
     if (!loading) return
-    setStageIndex(0)
     const interval = setInterval(() => {
       setStageIndex((i) => (i + 1) % SCAN_STAGES.length)
     }, 1400)
@@ -143,6 +155,7 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setScanningUrl(url)
+    setStageIndex(0)
     setLoading(true)
     setError(null)
     setResult(null)
@@ -157,6 +170,7 @@ function App() {
       }
       const data = await response.json()
       setResult(data)
+      setReportOpened(true)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -176,16 +190,32 @@ function App() {
 
   const tls = result ? getTlsInfo(result.tls_info, result.final_url) : null
 
+  const toggleQuickFilter = (filter) => setQuickFilters((current) =>
+    current.includes(filter) ? current.filter((value) => value !== filter) : [...current, filter])
+  const history = mockScans.filter((scan) => {
+    const protocol = getTlsInfo(scan.tls_info, scan.final_url)?.protocol
+    const selectedTls = quickFilters.filter((filter) => filter.startsWith('TLS'))
+    return (gradeFilter === 'All' || scan.grade === gradeFilter)
+      && (!quickFilters.includes('No CSP') || !('content-security-policy' in scan.main_document.security_headers))
+      && (selectedTls.length === 0 || selectedTls.includes(protocol))
+  }).sort((a, b) => {
+    if (sort === 'worst-score') return a.score - b.score
+    if (sort === 'best-score') return b.score - a.score
+    if (sort === 'most-trackers') return b.trackers.length - a.trackers.length
+    return b.scannedAt - a.scannedAt
+  })
+
   return (
     <div className="shell">
       <div className="topbar">
         <div className="brand">
-          <div className="brand-mark">◉</div>
+          <div className="brand-mark">PL</div>
           <span>PrivacyLens</span>
         </div>
-        <small>Website Privacy Auditor Compact V1</small>
+        <small>Website Privacy Auditor</small>
       </div>
 
+      <div className="search-toolbar">
       <form className="scan" onSubmit={handleSubmit}>
         <input
           value={url}
@@ -198,16 +228,80 @@ function App() {
           {loading ? 'Scanning...' : 'Scan website'}
         </button>
       </form>
+      <div className="toolbar-actions" role="group" aria-label="Display options">
+        <button type="button" className="theme-toggle"
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            {theme === 'dark' ? <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></> : <path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z" />}
+          </svg>
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        </button>
+      </div>
+      </div>
 
-      <section className="history">
+      <div className={`dashboard-layout history-dropdown-layout${reportOpened ? ' history-at-side' : ''}`}>
+      <details className="history-dropdown">
+      <summary className="history-dropdown-tab">
+        <span>Scan history <span className="mock-label">Demo data</span></span>
+        <span className="history-dropdown-count">{mockScans.length} scans</span>
+      </summary>
+      <aside className="history" aria-label="Scan history">
         <div className="history-head">
-          <h2>Recent scan history</h2>
-          <button type="button" disabled>View all scans</button>
+          <h2>Scan history</h2>
+          <span className="mock-label">Demo data</span>
+        </div>
+        <div className="history-filters">
+          <div className="filter-label" id="grade-label">Grade</div>
+          <div className="filter-pills" role="group" aria-labelledby="grade-label">
+            {['All', 'A', 'B', 'C', 'D', 'E', 'F'].map((grade) => (
+              <button type="button" key={grade} aria-pressed={gradeFilter === grade}
+                onClick={() => setGradeFilter(grade)} className="filter-button">{grade}</button>
+            ))}
+          </div>
+          <div className="filter-label" id="quick-label">Quick filter</div>
+          <div className="filter-pills" role="group" aria-labelledby="quick-label">
+            {['No CSP', 'TLS 1.2', 'TLS 1.3'].map((filter) => (
+              <button type="button" key={filter} aria-pressed={quickFilters.includes(filter)}
+                onClick={() => toggleQuickFilter(filter)} className="filter-button">{filter}</button>
+            ))}
+          </div>
+          <label className="sort-row">Sort
+            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+              {['most-recent', 'worst-score', 'most-trackers', 'best-score'].map((value) => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <div className="filter-summary" role="status">{history.length} of {mockScans.length} scans
+            <button type="button" onClick={() => { setGradeFilter('All'); setQuickFilters([]); setSort('most-recent') }}>Reset</button>
+          </div>
         </div>
         <div className="history-list">
-          <p className="metric-note">Scan history will appear here once persistence is added.</p>
+          {history.map((scan) => (
+            <button type="button" className="history-entry" key={scan.id} disabled={loading}
+              aria-current={result?.id === scan.id ? 'true' : undefined}
+              onClick={() => { setResult(scan); setReportOpened(true); setError(null); setShowDebug(false) }}>
+              <span><strong>{new URL(scan.url).hostname}</strong><small>Sample scan · {getTlsInfo(scan.tls_info, scan.final_url).protocol}</small></span>
+              <span className="history-entry-meta">{scan.trackers.length}t <b className={gradeClass(scan.grade)}>{scan.grade}</b></span>
+            </button>
+          ))}
+          {history.length === 0 && <p className="empty-history">No scans match these filters.</p>}
         </div>
-      </section>
+      </aside>
+      </details>
+      <main className="report">
+      {reportOpened && !loading && (
+        <button type="button" className="back-to-start" onClick={() => {
+          setResult(null)
+          setReportOpened(false)
+          setError(null)
+          setShowDebug(false)
+        }}>
+          <span aria-hidden="true">←</span> Back to scan
+        </button>
+      )}
+      {result?.id?.startsWith('mock-') && <p className="demo-note">Sample report · Run a scan for live results.</p>}
 
       {error && <p className="error">Error: {error}</p>}
 
@@ -222,7 +316,7 @@ function App() {
       )}
 
       {result && (
-        <div className="results-fade">
+        <div className="results-fade" key={result.id ?? result.final_url ?? result.url}>
           <section className="summary">
             <div className="summary-top">
               <div className={`grade ${gradeClass(result.grade)}`}>{result.grade}</div>
@@ -562,6 +656,8 @@ function App() {
           {showDebug && <pre id="debug-json">{JSON.stringify(result, null, 2)}</pre>}
         </div>
       )}
+      </main>
+      </div>
     </div>
   )
 }

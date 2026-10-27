@@ -110,7 +110,7 @@ async def scan(url):
         if main_response:
             main_headers = await main_response.all_headers()
             result["main_document"] = {
-                "url": main_response.url,
+                "url": main_response.url,   
                 "status": main_response.status,
                 "security_headers": {
                     h: main_headers[h] for h in SECURITY_HEADERS_TO_CHECK if h in main_headers

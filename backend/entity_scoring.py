@@ -113,7 +113,7 @@ def score_likelihood(tracker_list):
 
 def score_impact(main_document, cookies, first_party_domains, tls_info, main_domain):
     cfg = SCORING_CONFIG
-    score = 0
+    score = 0.0
 
     # Headers — from main_document only, not the merged per-domain dict
     headers = main_document.get("security_headers", {}) if main_document else {}
