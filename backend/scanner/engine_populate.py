@@ -97,6 +97,7 @@ async def scan(url):
 
     #Start playwright as p
     #navigate the website and
+    #core engine
     async with async_playwright() as p:
         #launch a new browser and new page to setup and track network traffic
         #need to change instead of launching everytime instead of startup 
@@ -139,7 +140,9 @@ async def scan(url):
     return result
 
 
-
+"""
+Sample main for testing 
+"""
 if __name__ == "__main__":
     output = asyncio.run(scan("https://www.roblox.com/home"))
     #Converts each set into a sorted list in palce

@@ -38,7 +38,9 @@ CREATE TABLE IF NOT EXISTS scan_trackers (
 
 _pool = None
 
-
+"""
+URL host convert toe hte normalized hostname, removes the paths and just the hostname
+"""
 def normalize_host(url):
     """Grouping key for history: 'https://WWW.Example.com/a' and 'example.com' both -> 'example.com'."""
     if "://" not in url:
@@ -164,19 +166,50 @@ async def save_scan(result):
     return scan_id
 
 
-async def get_history(url, limit=100):
-    """Every scan for this site, newest first."""
+SORT_COLUMNS = {
+    "most-recent": "scanned_at DESC, id DESC",
+    "worst-score": "score ASC, id DESC",
+    "best-score": "score DESC, id DESC",
+    "most-trackers": "tracker_count DESC, id DESC",
+}
+
+
+async def get_history(url=None, limit=100, offset=0, grade=None, tls_protocols=None, sort="most-recent"):
+    """Every scan, newest first by default. url/grade/tls_protocols narrow the results; sort picks the ordering."""
+    conditions = []
+    params = []
+
+    if url:
+        params.append(normalize_host(url))
+        conditions.append(f"host = ${len(params)}")
+
+    if grade:
+        params.append(grade)
+        conditions.append(f"grade = ${len(params)}")
+
+    if tls_protocols:
+        params.append(list(tls_protocols))
+        conditions.append(f"tls_protocol = ANY(${len(params)})")
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    order_by = SORT_COLUMNS.get(sort, SORT_COLUMNS["most-recent"])
+
+    params.append(limit)
+    limit_idx = len(params)
+    params.append(offset)
+    offset_idx = len(params)
+
     async with _pool.acquire() as conn:
         rows = await conn.fetch(
-            """
+            f"""
             SELECT id, url, final_url, score, grade, likelihood, impact,
                    tracker_count, cookie_count, tls_protocol, scanned_at
             FROM scans
-            WHERE host = $1
-            ORDER BY scanned_at DESC, id DESC
-            LIMIT $2
+            {where}
+            ORDER BY {order_by}
+            LIMIT ${limit_idx} OFFSET ${offset_idx}
             """,
-            normalize_host(url), limit,
+            *params,
         )
     return [{**dict(r), "scanned_at": r["scanned_at"].isoformat()} for r in rows]
 
