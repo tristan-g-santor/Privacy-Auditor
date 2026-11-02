@@ -174,7 +174,7 @@ SORT_COLUMNS = {
 }
 
 
-async def get_history(url=None, limit=100, offset=0, grade=None, tls_protocols=None, sort="most-recent"):
+async def get_history(url=None, limit=5, offset=0, grade=None, tls_protocols=None, sort="most-recent"):
     """Every scan, newest first by default. url/grade/tls_protocols narrow the results; sort picks the ordering."""
     conditions = []
     params = []

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import { mockScans } from './data/mockScans'
 
 const SCAN_STAGES = [
   'Launching browser...',
@@ -143,6 +142,34 @@ function App() {
   const [stageIndex, setStageIndex] = useState(0)
   const [error, setError] = useState(null)
   const [showDebug, setShowDebug] = useState(false)
+  const [scans, setScans] = useState([])
+  const [historyError, setHistoryError] = useState(null)
+
+  const loadHistory = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/history?limit=100')
+      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      setScans(await response.json())
+      setHistoryError(null)
+    } catch (err) {
+      setHistoryError(err.message)
+    }
+  }
+
+  useEffect(() => { loadHistory() }, [])
+
+  const openHistoryEntry = async (scanId) => {
+    setError(null)
+    setShowDebug(false)
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/scans/${scanId}`)
+      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      setResult(await response.json())
+      setReportOpened(true)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   useEffect(() => {
     if (!loading) return
@@ -171,6 +198,7 @@ function App() {
       const data = await response.json()
       setResult(data)
       setReportOpened(true)
+      loadHistory()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -192,17 +220,15 @@ function App() {
 
   const toggleQuickFilter = (filter) => setQuickFilters((current) =>
     current.includes(filter) ? current.filter((value) => value !== filter) : [...current, filter])
-  const history = mockScans.filter((scan) => {
-    const protocol = getTlsInfo(scan.tls_info, scan.final_url)?.protocol
+  const history = scans.filter((scan) => {
     const selectedTls = quickFilters.filter((filter) => filter.startsWith('TLS'))
     return (gradeFilter === 'All' || scan.grade === gradeFilter)
-      && (!quickFilters.includes('No CSP') || !('content-security-policy' in scan.main_document.security_headers))
-      && (selectedTls.length === 0 || selectedTls.includes(protocol))
+      && (selectedTls.length === 0 || selectedTls.includes(scan.tls_protocol))
   }).sort((a, b) => {
     if (sort === 'worst-score') return a.score - b.score
     if (sort === 'best-score') return b.score - a.score
-    if (sort === 'most-trackers') return b.trackers.length - a.trackers.length
-    return b.scannedAt - a.scannedAt
+    if (sort === 'most-trackers') return b.tracker_count - a.tracker_count
+    return new Date(b.scanned_at) - new Date(a.scanned_at)
   })
 
   return (
@@ -243,14 +269,14 @@ function App() {
       <div className={`dashboard-layout history-dropdown-layout${reportOpened ? ' history-at-side' : ''}`}>
       <details className="history-dropdown">
       <summary className="history-dropdown-tab">
-        <span>Scan history <span className="mock-label">Demo data</span></span>
-        <span className="history-dropdown-count">{mockScans.length} scans</span>
+        <span>Scan history</span>
+        <span className="history-dropdown-count">{scans.length} scans</span>
       </summary>
       <aside className="history" aria-label="Scan history">
         <div className="history-head">
           <h2>Scan history</h2>
-          <span className="mock-label">Demo data</span>
         </div>
+        {historyError && <p className="error">Could not load history: {historyError}</p>}
         <div className="history-filters">
           <div className="filter-label" id="grade-label">Grade</div>
           <div className="filter-pills" role="group" aria-labelledby="grade-label">
@@ -261,7 +287,7 @@ function App() {
           </div>
           <div className="filter-label" id="quick-label">Quick filter</div>
           <div className="filter-pills" role="group" aria-labelledby="quick-label">
-            {['No CSP', 'TLS 1.2', 'TLS 1.3'].map((filter) => (
+            {['TLS 1.2', 'TLS 1.3'].map((filter) => (
               <button type="button" key={filter} aria-pressed={quickFilters.includes(filter)}
                 onClick={() => toggleQuickFilter(filter)} className="filter-button">{filter}</button>
             ))}
@@ -273,17 +299,17 @@ function App() {
               ))}
             </select>
           </label>
-          <div className="filter-summary" role="status">{history.length} of {mockScans.length} scans
+          <div className="filter-summary" role="status">{history.length} of {scans.length} scans
             <button type="button" onClick={() => { setGradeFilter('All'); setQuickFilters([]); setSort('most-recent') }}>Reset</button>
           </div>
         </div>
         <div className="history-list">
           {history.map((scan) => (
             <button type="button" className="history-entry" key={scan.id} disabled={loading}
-              aria-current={result?.id === scan.id ? 'true' : undefined}
-              onClick={() => { setResult(scan); setReportOpened(true); setError(null); setShowDebug(false) }}>
-              <span><strong>{new URL(scan.url).hostname}</strong><small>Sample scan · {getTlsInfo(scan.tls_info, scan.final_url).protocol}</small></span>
-              <span className="history-entry-meta">{scan.trackers.length}t <b className={gradeClass(scan.grade)}>{scan.grade}</b></span>
+              aria-current={result?.scan_id === scan.id ? 'true' : undefined}
+              onClick={() => openHistoryEntry(scan.id)}>
+              <span><strong>{new URL(scan.url).hostname}</strong><small>{new Date(scan.scanned_at).toLocaleString()} · {scan.tls_protocol || 'Unknown TLS'}</small></span>
+              <span className="history-entry-meta">{scan.tracker_count} Trackers <b className={gradeClass(scan.grade)}>{scan.grade}</b></span>
             </button>
           ))}
           {history.length === 0 && <p className="empty-history">No scans match these filters.</p>}
@@ -301,8 +327,6 @@ function App() {
           <span aria-hidden="true">←</span> Back to scan
         </button>
       )}
-      {result?.id?.startsWith('mock-') && <p className="demo-note">Sample report · Run a scan for live results.</p>}
-
       {error && <p className="error">Error: {error}</p>}
 
       {loading && (
@@ -316,7 +340,7 @@ function App() {
       )}
 
       {result && (
-        <div className="results-fade" key={result.id ?? result.final_url ?? result.url}>
+        <div className="results-fade" key={result.scan_id ?? result.final_url ?? result.url}>
           <section className="summary">
             <div className="summary-top">
               <div className={`grade ${gradeClass(result.grade)}`}>{result.grade}</div>
@@ -592,7 +616,7 @@ function App() {
                 <div className="row-item" key={h.key}>
                   <strong>{h.label}</strong>
                   <span className={`status-inline ${h.present ? 'good' : 'bad'}`}>
-                    {h.present ? '✓' : '✗'} {HEADER_SEVERITY[h.key]}
+                    {h.present ? '(Valid) ' : '(Invalid)'} {HEADER_SEVERITY[h.key]}
                   </span>
                 </div>
               ))}

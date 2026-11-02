@@ -4,3 +4,5 @@ playwright
 tldextract
 httpx
 asyncpg
+python-dotenv
+pytest

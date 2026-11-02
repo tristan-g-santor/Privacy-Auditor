@@ -6,8 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from scanner.engine_populate import scan
 from entity_scoring import compute_score
 import db
+from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger("uvicorn.error")
+
+
 
 
 @asynccontextmanager
@@ -28,6 +32,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 @app.post("/scan")
 async def run_scan(url: str):
