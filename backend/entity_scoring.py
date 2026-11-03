@@ -1,8 +1,9 @@
 #Standard  
 import json, os, httpx, tldextract #send http requests to form data
 from urllib.parse import urlparse
+import category_cache
 
-#same as  and try to load once not per scanj
+#`sa`me as  and try to load once not per scanj
 ENTITY_MAP_PATH = os.path.join(os.path.dirname(__file__), "scanner", "entity_map.json")
 ENTITY_PREVALENCE_PATH = os.path.join(os.path.dirname(__file__), "scanner", "entity_prevalence.json")
 
@@ -21,22 +22,15 @@ for entity_name, entity_data in _entity_map.items():
         DOMAIN_TO_ENTITY[domain] = entity_name
 
 
-#cahce setup
-CATEGORY_CACHE_PATH = os.path.join(os.path.dirname(__file__), "category_cache.json")
-
-if os.path.exists(CATEGORY_CACHE_PATH):
-    with open(CATEGORY_CACHE_PATH, encoding="utf-8") as f:
-        _category_cache = json.load(f)
-else:
-    _category_cache = {}
-
-
 async def get_category_info(domain):
+    
     registrable_domain = tldextract.extract(domain).top_domain_under_public_suffix
-
-    if registrable_domain in _category_cache:
-        return _category_cache[registrable_domain]
-
+    #implement redis cache
+    if category_cache.is_enabled():
+        cached = await category_cache.get_cached_category(registrable_domain)
+        if cached:
+            return cached
+        
     url = f"https://raw.githubusercontent.com/duckduckgo/tracker-radar/main/domains/US/{registrable_domain}.json"
 
     try:
@@ -46,18 +40,16 @@ async def get_category_info(domain):
         if response.status_code == 200:
             data = response.json()
             info = {"categories": data.get("categories", []), "fingerprinting": data.get("fingerprinting")}
-            _category_cache[registrable_domain] = info
+            if category_cache.is_enabled():
+                await category_cache.set_cached_category(registrable_domain, info)
             return info
+        
     except (httpx.TimeoutException, httpx.RequestError):
         pass
 
     return {"categories": [], "fingerprinting": None}
 
 
-
-def save_category_cache():
-    with open(CATEGORY_CACHE_PATH, "w", encoding="utf-8") as f:
-        json.dump(_category_cache, f, indent=2)
 
 async def get_tracker_info(domain):
     """Look up what entity owns this domain, and how prevalent/what-category that entity is as a tracker."""
@@ -189,6 +181,5 @@ if __name__ == "__main__":
         print("Trackers:")
         for t in score_result['trackers']:
             print(" ", t)
-        save_category_cache()
 
     asyncio.run(test())

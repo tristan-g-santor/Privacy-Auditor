@@ -5,6 +5,7 @@ from playwright.async_api import async_playwright # this lets you launch the bro
 
 
 
+
 SECURITY_HEADERS_TO_CHECK = [
     "content-security-policy",
     "strict-transport-security",

@@ -6,3 +6,4 @@ httpx
 asyncpg
 python-dotenv
 pytest
+redis

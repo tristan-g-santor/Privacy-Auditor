@@ -7,6 +7,7 @@ from scanner.engine_populate import scan
 from entity_scoring import compute_score
 import db
 from dotenv import load_dotenv
+import category_cache
 
 load_dotenv()
 logger = logging.getLogger("uvicorn.error")
@@ -18,11 +19,13 @@ logger = logging.getLogger("uvicorn.error")
 async def lifespan(app):
     if not await db.init_db():
         logger.warning("DATABASE_URL not set - scans will not be saved to history")
+    if not await category_cache.init_cache():
+        logger.warning("REDIS_URL not set - category lookups will not be cached")
     try:
         yield
     finally:
         await db.close_db()
-
+        await category_cache.close_cache()
 
 app = FastAPI(lifespan=lifespan)
 
