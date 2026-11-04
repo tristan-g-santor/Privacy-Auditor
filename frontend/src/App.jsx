@@ -138,6 +138,11 @@ function tlsStatus(protocol) {
   return 'bad'
 }
 
+function formatDuration(ms) {
+  if (ms == null) return null
+  return `${(ms / 1000).toFixed(1)} s`
+}
+
 function App() {
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('privacylens-theme') === 'light' ? 'light' : 'dark' }
@@ -374,6 +379,9 @@ function App() {
                   <span className={`pill ${scoreClass(result.score)}`}>
                     Overall risk: {result.score >= 75 ? 'Low' : result.score >= 60 ? 'Moderate' : 'High'}
                   </span>
+                  {result.scan_duration_ms != null && (
+                    <span className="pill neutral">Scanned in {formatDuration(result.scan_duration_ms)}</span>
+                  )}
                 </div>
               </div>
             </div>
