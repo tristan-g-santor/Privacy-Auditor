@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
+
 const SCAN_STAGES = [
   'Launching browser...',
   'Loading page...',
@@ -168,7 +171,7 @@ function App() {
 
   const loadHistory = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/history?limit=100', {headers: { 'X-Session-Id': SESSION_ID },})
+      const response = await fetch(`${API_URL}/history?limit=100`, {headers: { 'X-Session-Id': SESSION_ID },})
 
       if (!response.ok) throw new Error(`Server returned ${response.status}`)
       setScans(await response.json())
@@ -184,7 +187,7 @@ function App() {
     setError(null)
     setShowDebug(false)
     try {
-      const response = await fetch(`http://127.0.0.1:8000/scans/${scanId}`, {headers: { 'X-Session-Id': SESSION_ID },})
+      const response = await fetch(`${API_URL}/scans/${scanId}`,{headers: { 'X-Session-Id': SESSION_ID },})
 
       if (!response.ok) throw new Error(`Server returned ${response.status}`)
       setResult(await response.json())
@@ -211,7 +214,7 @@ function App() {
     setResult(null)
 
     try {
-    const response = await fetch( `http://127.0.0.1:8000/scan?url=${encodeURIComponent(url)}`,
+    const response = await fetch(`${API_URL}/scan?url=${encodeURIComponent(url)}`,
       { method: 'POST', headers: { 'X-Session-Id': SESSION_ID } })
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`)

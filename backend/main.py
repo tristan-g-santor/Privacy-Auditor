@@ -1,4 +1,4 @@
-import logging, time, db, category_cache
+import logging, os,  time, db, category_cache
 from typing import Literal
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Header
@@ -27,7 +27,8 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    #prevent 
+    allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
