@@ -23,7 +23,12 @@ CREATE TABLE IF NOT EXISTS scans (
     result          JSONB       NOT NULL
 );
 
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS session_id TEXT;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS scan_duration_ms INTEGER CHECK (scan_duration_ms >= 0);
+
 CREATE INDEX IF NOT EXISTS scans_host_time_idx ON scans (host, scanned_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS scans_session_time_idx ON scans (session_id, scanned_at DESC, id DESC);
+
 
 CREATE TABLE IF NOT EXISTS scan_trackers (
     scan_id         BIGINT  NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
@@ -55,7 +60,7 @@ def _finite_number(value, field):
     return float(value)
 
 
-def build_scan_row(result):
+def build_scan_row(result, session_id):
     """Validate a scored scan result and shape it for insert. Raises ValueError on bad data
     so nothing inaccurate gets written to history."""
     score = result.get("score")
@@ -74,12 +79,24 @@ def build_scan_row(result):
     likelihood = _finite_number(breakdown.get("likelihood"), "breakdown.likelihood")
     impact = _finite_number(breakdown.get("impact"), "breakdown.impact")
 
+    #scan_duration + session id 
+    scan_duration_ms = result.get("scan_duration_ms")
+    if scan_duration_ms is not None and (
+        isinstance(scan_duration_ms, bool) or not isinstance(scan_duration_ms, int) or scan_duration_ms < 0
+    ):
+        raise ValueError(f"scan_duration_ms must be a non-negative integer, got {scan_duration_ms!r}")
+
+    if not isinstance(session_id, str) or not session_id or len(session_id) > 64:
+        raise ValueError(f"session_id must be a non-empty string up to 64 chars, got {session_id!r}")
+
+
     # TLS can be missing entirely (http://, failed handshake, redirect to another host) - store NULL
     final_url = result.get("final_url")
     tls_host = urlparse(final_url).hostname if final_url else None
     tls_protocol = ((result.get("tls_info") or {}).get(tls_host) or {}).get("protocol") or None
 
     trackers = [build_tracker_row(t) for t in (result.get("trackers") or [])]
+
 
     return {
         "url": result["url"],
@@ -92,9 +109,10 @@ def build_scan_row(result):
         "tracker_count": len(trackers),
         "cookie_count": len(result.get("cookies") or []),
         "tls_protocol": tls_protocol,
-        # allow_nan=False: JSONB can't hold NaN, fail here with a clear error instead
         "result": json.dumps(result, allow_nan=False, default=sorted),
         "trackers": trackers,
+        "session_id" : session_id,
+        "scan_duration_ms": scan_duration_ms,
     }
 
 
@@ -139,20 +157,23 @@ def is_enabled():
     return _pool is not None
 
 
-async def save_scan(result):
+async def save_scan(result, session_id):
     """Insert one scan + its trackers in a single transaction. Returns the new scan id."""
-    row = build_scan_row(result)
+    row = build_scan_row(result, session_id)
     async with _pool.acquire() as conn:
         async with conn.transaction():
             scan_id = await conn.fetchval(
                 """
-                INSERT INTO scans (url, host, final_url, score, grade, likelihood, impact, tracker_count, cookie_count, tls_protocol, result)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
+                INSERT INTO scans (url, host, final_url, score, grade, likelihood, impact,
+                                   tracker_count, cookie_count, tls_protocol, result,
+                                   session_id, scan_duration_ms)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13)
                 RETURNING id
                 """,
                 row["url"], row["host"], row["final_url"], row["score"], row["grade"],
                 row["likelihood"], row["impact"], row["tracker_count"], row["cookie_count"],
                 row["tls_protocol"], row["result"],
+                row["session_id"], row["scan_duration_ms"],
             )
             if row["trackers"]:
                 # one batched round trip, so 50+ trackers don't mean 50+ separate inserts
@@ -174,10 +195,14 @@ SORT_COLUMNS = {
 }
 
 
-async def get_history(url=None, limit=5, offset=0, grade=None, tls_protocols=None, sort="most-recent"):
-    """Every scan, newest first by default. url/grade/tls_protocols narrow the results; sort picks the ordering."""
+async def get_history(url=None, limit=5, offset=0, grade=None, tls_protocols=None, sort="most-recent", session_id=None):
+    """Every scan, newest first by default. session_id/url/grade/tls_protocols narrow the results; sort picks the ordering."""
     conditions = []
     params = []
+
+    if session_id:
+        params.append(session_id)
+        conditions.append(f"session_id = ${len(params)}")
 
     if url:
         params.append(normalize_host(url))
@@ -203,7 +228,7 @@ async def get_history(url=None, limit=5, offset=0, grade=None, tls_protocols=Non
         rows = await conn.fetch(
             f"""
             SELECT id, url, final_url, score, grade, likelihood, impact,
-                   tracker_count, cookie_count, tls_protocol, scanned_at
+                   tracker_count, cookie_count, tls_protocol, scan_duration_ms, scanned_at
             FROM scans
             {where}
             ORDER BY {order_by}
@@ -214,10 +239,13 @@ async def get_history(url=None, limit=5, offset=0, grade=None, tls_protocols=Non
     return [{**dict(r), "scanned_at": r["scanned_at"].isoformat()} for r in rows]
 
 
-async def get_scan(scan_id):
-    """Full stored result for one past scan, or None."""
+async def get_scan(scan_id, session_id):
+    """Full stored result for one past scan, or None if it doesn't exist or belongs to another session."""
     async with _pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT id, scanned_at, result FROM scans WHERE id = $1", scan_id)
+        row = await conn.fetchrow(
+            "SELECT id, scanned_at, result FROM scans WHERE id = $1 AND session_id = $2",
+            scan_id, session_id,
+        )
     if not row:
         return None
     return {**json.loads(row["result"]), "scan_id": row["id"], "scanned_at": row["scanned_at"].isoformat()}
@@ -237,12 +265,15 @@ if __name__ == "__main__":
             "cookies": [],
             "trackers": [],
             "tls_info": {},
+            "scan_duration_ms": 1234,
         }
-        scan_id = await save_scan(fake_result)
+        scan_id = await save_scan(fake_result, "test-session")
         print("Saved scan id:", scan_id)
         print("History:", await get_history("example.com"))
-        print("Single scan:", await get_scan(scan_id))
+        print("Single scan:", await get_scan(scan_id, "test-session"))
+        print("Other session:", await get_scan(scan_id, "someone-else"))
         await close_db()
 
     asyncio.run(test())
 
+ 

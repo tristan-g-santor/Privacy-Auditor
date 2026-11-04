@@ -37,6 +37,22 @@ const CATEGORY_WEIGHTS = {
   'CDP': 2,
 }
 
+
+function getSessionId() {
+  try {
+    let id = localStorage.getItem('privacylens-session-id')
+    if (!id) {
+      id = crypto.randomUUID()
+      localStorage.setItem('privacylens-session-id', id)
+    }
+    return id
+  } catch {
+    return crypto.randomUUID()
+  }
+}
+
+const SESSION_ID = getSessionId()
+
 function getDisplayCategory(tracker) {
   const categories = tracker.categories || []
   if (categories.length === 0) return 'Unclassified'
@@ -147,7 +163,8 @@ function App() {
 
   const loadHistory = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/history?limit=100')
+      const response = await fetch('http://127.0.0.1:8000/history?limit=100', {headers: { 'X-Session-Id': SESSION_ID },})
+
       if (!response.ok) throw new Error(`Server returned ${response.status}`)
       setScans(await response.json())
       setHistoryError(null)
@@ -162,7 +179,8 @@ function App() {
     setError(null)
     setShowDebug(false)
     try {
-      const response = await fetch(`http://127.0.0.1:8000/scans/${scanId}`)
+      const response = await fetch(`http://127.0.0.1:8000/scans/${scanId}`, {headers: { 'X-Session-Id': SESSION_ID },})
+
       if (!response.ok) throw new Error(`Server returned ${response.status}`)
       setResult(await response.json())
       setReportOpened(true)
@@ -188,10 +206,8 @@ function App() {
     setResult(null)
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/scan?url=${encodeURIComponent(url)}`,
-        { method: 'POST' }
-      )
+    const response = await fetch( `http://127.0.0.1:8000/scan?url=${encodeURIComponent(url)}`,
+      { method: 'POST', headers: { 'X-Session-Id': SESSION_ID } })
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`)
       }
@@ -685,5 +701,7 @@ function App() {
     </div>
   )
 }
+
+
 
 export default App

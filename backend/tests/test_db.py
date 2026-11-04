@@ -7,6 +7,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import db
 
 TEST_DSN = os.environ.get("TEST_DATABASE_URL")
+SESSION = "test-session"
+
+
+def build(result):
+    return db.build_scan_row(result, SESSION)
+
+
+async def save(result):
+    return await db.save_scan(result, SESSION)
 
 
 def make_result(**overrides):
@@ -40,7 +49,7 @@ def many_trackers(n):
 # ---------- validation (no database needed) ----------
 
 def test_valid_result_builds_row():
-    row = db.build_scan_row(make_result())
+    row = build(make_result())
     assert row["host"] == "example.com"
     assert row["tls_protocol"] == "TLS 1.3"
     assert row["tracker_count"] == 2
@@ -59,50 +68,50 @@ def test_normalize_host(url, host):
 
 
 def test_empty_tracker_list_is_valid():
-    row = db.build_scan_row(make_result(trackers=[]))
+    row = build(make_result(trackers=[]))
     assert row["trackers"] == [] and row["tracker_count"] == 0
 
 
 def test_missing_trackers_key_is_valid():
     result = make_result()
     del result["trackers"]
-    assert db.build_scan_row(result)["tracker_count"] == 0
+    assert build(result)["tracker_count"] == 0
 
 
 @pytest.mark.parametrize("tls_info", [{}, None, {"other-host.com": {"protocol": "TLS 1.2"}},
                                       {"www.example.com": {}}, {"www.example.com": None}])
 def test_missing_tls_stores_null(tls_info):
-    assert db.build_scan_row(make_result(tls_info=tls_info))["tls_protocol"] is None
+    assert build(make_result(tls_info=tls_info))["tls_protocol"] is None
 
 
 def test_missing_tls_key_entirely():
     result = make_result()
     del result["tls_info"]
-    assert db.build_scan_row(result)["tls_protocol"] is None
+    assert build(result)["tls_protocol"] is None
 
 
 def test_missing_final_url_stores_null_tls():
     result = make_result()
     del result["final_url"]
-    row = db.build_scan_row(result)
+    row = build(result)
     assert row["final_url"] is None and row["tls_protocol"] is None
 
 
 def test_large_tracker_list():
-    row = db.build_scan_row(make_result(trackers=many_trackers(75)))
+    row = build(make_result(trackers=many_trackers(75)))
     assert row["tracker_count"] == 75 and len(row["trackers"]) == 75
 
 
 @pytest.mark.parametrize("score", [-1, 101, 82.5, "82", None, True, float("nan")])
 def test_bad_score_rejected(score):
     with pytest.raises(ValueError, match="score"):
-        db.build_scan_row(make_result(score=score))
+        build(make_result(score=score))
 
 
 @pytest.mark.parametrize("grade", ["E", "b", "", None, "AB"])
 def test_bad_grade_rejected(grade):
     with pytest.raises(ValueError, match="grade"):
-        db.build_scan_row(make_result(grade=grade))
+        build(make_result(grade=grade))
 
 
 @pytest.mark.parametrize("breakdown", [{}, None, {"likelihood": math.nan, "impact": 1.0},
@@ -110,7 +119,7 @@ def test_bad_grade_rejected(grade):
                                        {"likelihood": "3", "impact": 1.0}])
 def test_bad_breakdown_rejected(breakdown):
     with pytest.raises(ValueError, match="breakdown"):
-        db.build_scan_row(make_result(breakdown=breakdown))
+        build(make_result(breakdown=breakdown))
 
 
 @pytest.mark.parametrize("bad", [{"prevalence": 1.5}, {"prevalence": -0.1}, {"prevalence": math.nan},
@@ -118,17 +127,34 @@ def test_bad_breakdown_rejected(breakdown):
 def test_bad_tracker_rejected(bad):
     tracker = {**make_result()["trackers"][0], **bad}
     with pytest.raises(ValueError):
-        db.build_scan_row(make_result(trackers=[tracker]))
+        build(make_result(trackers=[tracker]))
 
 
 def test_nan_anywhere_in_result_rejected():
     with pytest.raises(ValueError):
-        db.build_scan_row(make_result(cookies=[{"domain": "example.com", "expires": math.nan}]))
+        build(make_result(cookies=[{"domain": "example.com", "expires": math.nan}]))
 
 
 def test_url_without_host_rejected():
     with pytest.raises(ValueError, match="host"):
-        db.build_scan_row(make_result(url="https://"))
+        build(make_result(url="https://"))
+
+
+@pytest.mark.parametrize("session_id", [None, "", "x" * 65, 123])
+def test_bad_session_id_rejected(session_id):
+    with pytest.raises(ValueError, match="session_id"):
+        db.build_scan_row(make_result(), session_id)
+
+
+@pytest.mark.parametrize("duration", [-1, 1.5, True, "100"])
+def test_bad_duration_rejected(duration):
+    with pytest.raises(ValueError, match="scan_duration_ms"):
+        build(make_result(scan_duration_ms=duration))
+
+
+def test_duration_is_optional_and_stored():
+    assert build(make_result())["scan_duration_ms"] is None
+    assert build(make_result(scan_duration_ms=4200))["scan_duration_ms"] == 4200
 
 
 # ---------- PostgreSQL integration ----------
@@ -153,8 +179,8 @@ def test_same_url_twice_keeps_both_rows_newest_first():
     async def body():
         await fresh_db()
         try:
-            first = await db.save_scan(make_result(score=70, grade="C"))
-            second = await db.save_scan(make_result(score=82, grade="B"))
+            first = await save(make_result(score=70, grade="C"))
+            second = await save(make_result(score=82, grade="B"))
             history = await db.get_history("example.com")
             assert [h["id"] for h in history] == [second, first]
             assert [h["score"] for h in history] == [82, 70]
@@ -168,9 +194,9 @@ def test_history_groups_url_variants_and_separates_sites():
     async def body():
         await fresh_db()
         try:
-            await db.save_scan(make_result(url="https://www.example.com/a"))
-            await db.save_scan(make_result(url="http://example.com/b"))
-            await db.save_scan(make_result(url="https://other.org"))
+            await save(make_result(url="https://www.example.com/a"))
+            await save(make_result(url="http://example.com/b"))
+            await save(make_result(url="https://other.org"))
             assert len(await db.get_history("EXAMPLE.com")) == 2
             assert len(await db.get_history("other.org")) == 1
             assert await db.get_history("never-scanned.com") == []
@@ -184,10 +210,10 @@ def test_empty_trackers_and_missing_tls_round_trip():
     async def body():
         await fresh_db()
         try:
-            scan_id = await db.save_scan(make_result(trackers=[], tls_info={}))
+            scan_id = await save(make_result(trackers=[], tls_info={}))
             [h] = await db.get_history("example.com")
             assert h["tracker_count"] == 0 and h["tls_protocol"] is None
-            stored = await db.get_scan(scan_id)
+            stored = await db.get_scan(scan_id, SESSION)
             assert stored["trackers"] == [] and stored["scan_id"] == scan_id
         finally:
             await db.close_db()
@@ -200,7 +226,7 @@ def test_large_tracker_list_round_trip():
         await fresh_db()
         try:
             trackers = many_trackers(120)
-            scan_id = await db.save_scan(make_result(trackers=trackers))
+            scan_id = await save(make_result(trackers=trackers))
             async with db._pool.acquire() as conn:
                 rows = await conn.fetch(
                     "SELECT domain, prevalence, categories, fingerprinting FROM scan_trackers "
@@ -221,7 +247,7 @@ def test_failed_insert_leaves_no_partial_scan():
             dup = make_result()["trackers"][0]
             with pytest.raises(Exception):
                 # duplicate tracker domain violates the primary key midway through the batch
-                await db.save_scan(make_result(trackers=[dup, dup]))
+                await save(make_result(trackers=[dup, dup]))
             async with db._pool.acquire() as conn:
                 assert await conn.fetchval("SELECT count(*) FROM scans") == 0
                 assert await conn.fetchval("SELECT count(*) FROM scan_trackers") == 0
@@ -245,6 +271,21 @@ def test_db_constraints_reject_bad_data_even_if_validation_bypassed():
                     await conn.execute(
                         "INSERT INTO scans (url, host, score, grade, likelihood, impact, tracker_count, "
                         "cookie_count, result) VALUES ('x', 'x', 50, 'Z', 0, 0, 0, 0, '{}')")
+        finally:
+            await db.close_db()
+    run(body())
+
+
+@needs_db
+def test_sessions_cannot_see_each_others_scans():
+    async def body():
+        await fresh_db()
+        try:
+            mine = await db.save_scan(make_result(), "alice")
+            await db.save_scan(make_result(), "bob")
+            assert [h["id"] for h in await db.get_history(session_id="alice")] == [mine]
+            assert await db.get_scan(mine, "alice") is not None
+            assert await db.get_scan(mine, "bob") is None
         finally:
             await db.close_db()
     run(body())

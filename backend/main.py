@@ -1,19 +1,15 @@
-import logging
+import logging, time, db, category_cache
 from typing import Literal
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from scanner.engine_populate import scan
 from entity_scoring import compute_score
-import db
 from dotenv import load_dotenv
-import category_cache
+
 
 load_dotenv()
 logger = logging.getLogger("uvicorn.error")
-
-
-
 
 @asynccontextmanager
 async def lifespan(app):
@@ -39,25 +35,27 @@ app.add_middleware(
 
 
 @app.post("/scan")
-async def run_scan(url: str):
+async def run_scan(url: str, x_session_id: str = Header(...)):
+    started = time.perf_counter()
     result = await scan(url)
 
     score_result = await compute_score(result)
+
+    #result dict
     result["score"] = score_result["score"]
     result["grade"] = score_result["grade"]
     result["breakdown"] = score_result["breakdown"]
     result["trackers"] = score_result["trackers"]
-
     result["third_party_domains"] = sorted(result["third_party_domains"])
     result["first_party_domains"] = sorted(result["first_party_domains"])
     result["unknown_hosts"] = sorted(result["unknown_hosts"])
-
+    result["scan_duration_ms"] = round((time.perf_counter() - started) * 1000)
     # still return the scan if saving fails; scan_id = None tells the client it isn't in history
     result["scan_id"] = None
     result["save_error"] = None
     if db.is_enabled():
         try:
-            result["scan_id"] = await db.save_scan(result)
+            result["scan_id"] = await db.save_scan(result, x_session_id)
         except Exception:
             logger.exception("failed to save scan for %s", url)
             result["save_error"] = "Scan completed, but could not be saved. Please try scanning again."
@@ -75,23 +73,24 @@ async def scan_history(
     #no_csp: bool = False, maybe come back to this 
     tls: list[Literal["TLS 1.2", "TLS 1.3"]] | None = Query(None),
     sort: Literal["most-recent", "worst-score", "most-trackers", "best-score"] = "most-recent",
+    x_session_id: str = Header(...),
 ):
     if not db.is_enabled():
         raise HTTPException(503, "History is unavailable: database not configured")
     try:
-        return await db.get_history(url, limit, grade=grade,
-                                    tls_protocols=tls, sort=sort, offset=offset)
+        return await db.get_history(url, limit, grade=grade, tls_protocols=tls,
+                                    sort=sort, offset=offset, session_id=x_session_id)
     except Exception:
         logger.exception("failed to load scan history")
         raise HTTPException(503, "Could not load scan history. Please try again.")
 
 
 @app.get("/scans/{scan_id}")
-async def get_scan(scan_id: int):
+async def get_scan(scan_id: int, x_session_id: str = Header(...)):
     if not db.is_enabled():
         raise HTTPException(503, "History is unavailable: database not configured")
     try:
-        scan_result = await db.get_scan(scan_id)
+        scan_result = await db.get_scan(scan_id, x_session_id)
     except Exception:
         logger.exception("failed to load saved scan %s", scan_id)
         raise HTTPException(503, "Could not load this scan. Please try again.")
