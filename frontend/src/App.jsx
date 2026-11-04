@@ -216,8 +216,9 @@ function App() {
     try {
     const response = await fetch(`${API_URL}/scan?url=${encodeURIComponent(url)}`,
       { method: 'POST', headers: { 'X-Session-Id': SESSION_ID } })
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`)
+       if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.detail || `Server returned ${response.status}`)
       }
       const data = await response.json()
       setResult(data)

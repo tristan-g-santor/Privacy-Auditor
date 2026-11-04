@@ -1,5 +1,5 @@
 import asyncio, ipaddress, json, os, tldextract #built in library to write code using async/wait
-
+from scanner.url_guard import validate_url, resolve_public, BlockedURLError
 from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
 from playwright.async_api import async_playwright # this lets you launch the browser instance
 
@@ -64,6 +64,7 @@ def classify_host(host, request_etld1, main_etld1):
 #we block service works using serviceWorkers: "block"
 async def scan(url):
     #structure for url
+    url =  await validate_url(url)
     result = {
         "url": url,
         "third_party_domains": set(),
@@ -76,6 +77,23 @@ async def scan(url):
     }
 
     seen_hosts =  set()  # Keep track of hosts we've already processed to avoid duplicates
+
+
+    checked_hosts = {}         # host -> True/False (public or not), so each host is only resolved once per scan
+    requested_hosts = set()    # every host the browser asked for, including redirect hops
+
+    async def is_allowed(host):
+        if host not in checked_hosts:
+            checked_hosts[host] = await resolve_public(host)
+        return checked_hosts[host]
+
+    async def guard_request(route):
+        host = urlparse(route.request.url).hostname
+        if host and await is_allowed(host):
+            await route.continue_()
+        else:
+            await route.abort("blockedbyclient")
+
     async def handle_responses(response):
         req_domain = urlparse(response.url).hostname
         if req_domain:
@@ -104,8 +122,10 @@ async def scan(url):
         #need to change instead of launching everytime instead of startup 
         #need to be aware of that
         browser = await p.chromium.launch()
-        context = await browser.new_context()
+        context = await browser.new_context(service_workers="block")
+        await context.route("**/*", guard_request)
         page = await context.new_page()
+        page.on("request", lambda req: requested_hosts.add(urlparse(req.url).hostname))
         page.on("response", handle_responses)
 
         main_response = await page.goto(url)
@@ -136,6 +156,13 @@ async def scan(url):
 
 
         await page.wait_for_timeout(500)  # let any trailing response handlers finish
+
+        #
+        for host in requested_hosts - checked_hosts.keys():
+            if host and not await is_allowed(host):
+                raise BlockedURLError(f"Site redirected to a non-public address ({host})")
+
+
         await browser.close()
 
     return result

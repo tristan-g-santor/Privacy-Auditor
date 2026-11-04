@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from scanner.engine_populate import scan
 from entity_scoring import compute_score
 from dotenv import load_dotenv
+from scanner.url_guard import BlockedURLError
+
 
 
 load_dotenv()
@@ -38,7 +40,10 @@ app.add_middleware(
 @app.post("/scan")
 async def run_scan(url: str, x_session_id: str = Header(...)):
     started = time.perf_counter()
-    result = await scan(url)
+    try:
+        result = await scan(url)
+    except BlockedURLError as e:
+        raise HTTPException(400, str(e))
 
     score_result = await compute_score(result)
 
