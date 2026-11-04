@@ -338,6 +338,8 @@ BOT_SITES = [
     ("google search captcha", "https://www.google.com/search?q=privacy+auditor", True),
     ("perimeterx: zillow.com", "https://www.zillow.com", True),
     ("datadome: tripadvisor.com", "https://www.tripadvisor.com", True),
+    # akamai doesn't serve a challenge page - it kills the connection (net::ERR_HTTP2_PROTOCOL_ERROR)
+    ("akamai: minecraft.net (silent block)", "https://www.minecraft.net/en-us", True),
     ("recaptcha widget on page (not a wall)", "https://www.google.com/recaptcha/api2/demo", False),
 ]
 
