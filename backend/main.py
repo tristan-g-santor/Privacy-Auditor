@@ -1,4 +1,4 @@
-import logging, os,  time, db, category_cache
+import asyncio, logging, os,  time, db, category_cache
 from typing import Literal
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Header
@@ -7,11 +7,21 @@ from scanner.engine_populate import scan
 from entity_scoring import compute_score
 from dotenv import load_dotenv
 from scanner.url_guard import BlockedURLError
+from playwright.async_api import Error as PlaywrightError
 
 
 
 load_dotenv()
 logger = logging.getLogger("uvicorn.error")
+
+# cap concurrent Chromiums (~300 MB each) so the server can't run out of memory
+MAX_CONCURRENT_SCANS = int(os.environ.get("MAX_CONCURRENT_SCANS", "3"))
+QUEUE_WAIT_SECONDS = 30
+SCAN_TIMEOUT_SECONDS = int(os.environ.get("SCAN_TIMEOUT_SECONDS", "30"))
+scan_slots = asyncio.Semaphore(MAX_CONCURRENT_SCANS)
+
+
+
 
 @asynccontextmanager
 async def lifespan(app):
@@ -35,16 +45,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 @app.post("/scan")
 async def run_scan(url: str, x_session_id: str = Header(...)):
-    started = time.perf_counter()
     try:
-        result = await scan(url)
+        # wait in line for a free slot - but not forever: if the queue is that long, the server is overloaded
+        await asyncio.wait_for(scan_slots.acquire(), timeout=QUEUE_WAIT_SECONDS)
+    except TimeoutError:
+        raise HTTPException(503, "The scanner is busy right now. Please try again in a minute.")
+
+    started = time.perf_counter()  # after the queue, so the duration measures the scan only
+    try:
+        result = await asyncio.wait_for(scan(url), timeout=SCAN_TIMEOUT_SECONDS)
     except BlockedURLError as e:
         raise HTTPException(400, str(e))
+    except PlaywrightError:
+        logger.warning("could not load %s", url, exc_info=True)
+        raise HTTPException(502, "This site couldn't be loaded. It may block automated scanners, or be offline.")
+    except TimeoutError:
+        logger.warning("scan of %s exceeded %ss", url, SCAN_TIMEOUT_SECONDS)
+        raise HTTPException(504, "This site took too long to scan. Please try again later.")
+    finally:
+        scan_slots.release()
 
+
+    
     score_result = await compute_score(result)
 
     #result dict
