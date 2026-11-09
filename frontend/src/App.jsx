@@ -146,6 +146,26 @@ function formatDuration(ms) {
   return `${(ms / 1000).toFixed(1)} s`
 }
 
+const ERROR_TITLES = {
+  400: "This address can't be scanned",
+  404: 'Scan not found',
+  502: "Couldn't load this site",
+  503: 'Scanner is busy',
+  504: 'Scan timed out',
+}
+
+function describeError(status, detail) {
+  return {
+    title: ERROR_TITLES[status] || 'Something went wrong',
+    message: detail || `The server returned ${status}. Please try again.`,
+  }
+}
+
+const NETWORK_ERROR = {
+  title: "Can't reach the scanner",
+  message: 'Check your connection, or try again in a moment.',
+}
+
 function App() {
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('privacylens-theme') === 'light' ? 'light' : 'dark' }
@@ -165,7 +185,6 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [stageIndex, setStageIndex] = useState(0)
   const [error, setError] = useState(null)
-  const [showDebug, setShowDebug] = useState(false)
   const [scans, setScans] = useState([])
   const [historyError, setHistoryError] = useState(null)
 
@@ -185,15 +204,18 @@ function App() {
 
   const openHistoryEntry = async (scanId) => {
     setError(null)
-    setShowDebug(false)
     try {
       const response = await fetch(`${API_URL}/scans/${scanId}`,{headers: { 'X-Session-Id': SESSION_ID },})
 
-      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        setError(describeError(response.status, body?.detail))
+        return
+      }
       setResult(await response.json())
       setReportOpened(true)
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      setError(NETWORK_ERROR)
     }
   }
 
@@ -216,16 +238,17 @@ function App() {
     try {
     const response = await fetch(`${API_URL}/scan?url=${encodeURIComponent(url)}`,
       { method: 'POST', headers: { 'X-Session-Id': SESSION_ID } })
-       if (!response.ok) {
+      if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new Error(body?.detail || `Server returned ${response.status}`)
+        setError(describeError(response.status, body?.detail))
+        return
       }
       const data = await response.json()
       setResult(data)
       setReportOpened(true)
       loadHistory()
-    } catch (err) {
-      setError(err.message)
+    } catch {
+      setError(NETWORK_ERROR)
     } finally {
       setLoading(false)
     }
@@ -347,12 +370,16 @@ function App() {
           setResult(null)
           setReportOpened(false)
           setError(null)
-          setShowDebug(false)
         }}>
           <span aria-hidden="true">←</span> Back to scan
         </button>
       )}
-      {error && <p className="error">Error: {error}</p>}
+      {error && (
+        <div className="error-card" role="alert">
+          <strong>{error.title}</strong>
+          <p>{error.message}</p>
+        </div>
+      )}
 
       {loading && (
         <section className="loading-panel">
@@ -701,11 +728,6 @@ function App() {
               reviewing, and <strong>green</strong> means the website is doing that part well.
             </p>
           </div>
-
-          <button type="button" onClick={() => setShowDebug(!showDebug)} className="debug-toggle">
-            {showDebug ? 'Hide raw JSON' : 'Show raw JSON'}
-          </button>
-          {showDebug && <pre id="debug-json">{JSON.stringify(result, null, 2)}</pre>}
         </div>
       )}
       </main>
