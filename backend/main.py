@@ -1,7 +1,8 @@
 import asyncio, logging, os,  time, db, category_cache
 from typing import Literal
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Query, Header
+from fastapi import FastAPI, HTTPException, Query, Header, Request
+import rate_limiter
 from fastapi.middleware.cors import CORSMiddleware
 from scanner.engine_populate import scan
 from entity_scoring import compute_score
@@ -46,7 +47,13 @@ app.add_middleware(
 )
 
 @app.post("/scan")
-async def run_scan(url: str, x_session_id: str = Header(...)):
+async def run_scan(url: str, request: Request, x_session_id: str = Header(...)):
+    # per-IP limit first, so a rate-limited caller never takes a place in the scan queue
+    allowed, retry_after = await rate_limiter.check_scan_allowed(rate_limiter.client_ip(request))
+    if not allowed:
+        minutes = max(1, -(-retry_after // 60))  # round up, so "0 minutes" never shows
+        raise HTTPException(429, f"You've reached the scan limit. Try again in {minutes} minute(s).",
+                            headers={"Retry-After": str(retry_after)})
     try:
         # wait in line for a free slot - but not forever: if the queue is that long, the server is overloaded
         await asyncio.wait_for(scan_slots.acquire(), timeout=QUEUE_WAIT_SECONDS)

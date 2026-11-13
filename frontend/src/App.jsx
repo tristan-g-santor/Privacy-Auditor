@@ -149,6 +149,7 @@ function formatDuration(ms) {
 const ERROR_TITLES = {
   400: "This address can't be scanned",
   404: 'Scan not found',
+  429: 'Too many scans',
   502: "Couldn't load this site",
   503: 'Scanner is busy',
   504: 'Scan timed out',

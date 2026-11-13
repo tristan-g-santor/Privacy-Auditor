@@ -22,6 +22,11 @@ async def close_cache():
         _client = None
 
 
+def get_client():
+    return _client
+
+
+
 def is_enabled():
     return _client is not None
 

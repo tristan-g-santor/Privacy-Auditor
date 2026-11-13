@@ -33,9 +33,17 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-auditor}:${POSTGRES_PASSWORD:-auditor}@db:5432/${POSTGRES_DB:-privacy_audit}
       REDIS_URL: redis://redis:6379
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      MAX_CONCURRENT_SCANS: ${MAX_CONCURRENT_SCANS:-2}
+      SCAN_TIMEOUT_SECONDS: ${SCAN_TIMEOUT_SECONDS:-30}
+      SCAN_RATE_LIMIT: ${SCAN_RATE_LIMIT:-10}
+      SCAN_RATE_WINDOW_SECONDS: ${SCAN_RATE_WINDOW_SECONDS:-600}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-0}
+
 
     ports:
-      - "8000:8000"
+    #local host only
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy   # init_db runs at startup, so wait until Postgres accepts connections
