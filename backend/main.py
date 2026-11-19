@@ -46,6 +46,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.post("/scan")
 async def run_scan(url: str, request: Request, x_session_id: str = Header(...)):
     # per-IP limit first, so a rate-limited caller never takes a place in the scan queue

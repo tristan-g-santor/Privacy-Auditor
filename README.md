@@ -31,6 +31,74 @@ in progress.
 3. **Frontend** (`frontend/`) : a React (Vite) app: enter a URL, see counts for each category of
    finding, and expand a raw-JSON view for debugging.
 
+## Scan history: PostgreSQL and session IDs
+
+Every completed scan is saved to PostgreSQL so a user can come back to past results. There are
+no accounts. Instead, each browser gets an anonymous **session ID**, and history is scoped to it.
+
+### How a session ID is created
+
+On first load, the frontend (`frontend/src/App.jsx`, `getSessionId()`) generates a random UUID
+with `crypto.randomUUID()` and stores it in `localStorage` under `privacylens-session-id`. Every
+later visit from the same browser reuses that ID. If `localStorage` is unavailable (for example
+in some private-browsing modes), a fresh ID is used for that page load only.
+
+The ID is sent on every API call as a request header:
+
+```
+X-Session-Id: 3f1c9a2e-...
+```
+
+All three endpoints require this header. A request without it is rejected with `422`.
+
+| Endpoint | What the session ID does |
+|---|---|
+| `POST /scan?url=...` | The scan is saved with this `session_id`. |
+| `GET /history` | Returns only scans whose `session_id` matches. Supports `url`, `grade`, `tls`, `sort`, `limit`, `offset`. |
+| `GET /scans/{id}` | Returns the scan only if it belongs to this session. Otherwise it returns `404`, so scan IDs from other users can't be read by guessing numbers. |
+
+### What's stored (`backend/db.py`)
+
+The schema is created automatically at startup (`CREATE TABLE IF NOT EXISTS`), so there's no
+separate migration step.
+
+- **`scans`**: one row per scan. Rescanning the same site adds a new row, which builds up a
+  history over time. Key columns:
+  - `host`: the normalized hostname (`https://WWW.Example.com/a` → `example.com`), used to group
+    rescans of the same site
+  - `score`, `grade`, `likelihood`, `impact`: the risk score
+  - `tracker_count`, `cookie_count`, `tls_protocol`: summary values used for filtering and sorting
+  - `session_id`: the anonymous owner
+  - `scan_duration_ms`, `scanned_at`
+  - `result`: the full scan result as `JSONB`, so a past scan can be re-rendered exactly
+- **`scan_trackers`**: one row per tracker domain found in a scan (`entity`, `prevalence`,
+  `categories`, `fingerprinting`), linked to `scans` with `ON DELETE CASCADE`.
+
+Indexes on `(session_id, scanned_at)` and `(host, scanned_at)` keep the history queries fast.
+
+Before anything is written, `build_scan_row()` validates the result (score 0–100, a valid
+grade, finite numbers, a session ID of at most 64 characters). Invalid data raises an error
+instead of being stored. The scan and its trackers are inserted in a single transaction, so a
+scan is never saved half-way.
+
+### When the database isn't available
+
+- **`DATABASE_URL` not set:** the API still works. Scans run and return results with a
+  `save_error` message, and `/history` returns `503`.
+- **A save fails:** the scan result is still returned to the user, with `scan_id: null` and a
+  `save_error` message, instead of the whole request failing.
+
+The connection string format is
+`postgresql://<user>:<password>@<host>:5432/<database>`. Azure Database for PostgreSQL also
+needs `?sslmode=require` at the end.
+
+### Limits of this approach
+
+A session ID is **not authentication**. It works like a bearer token: anyone who has the ID can
+read that session's history. It's also tied to one browser. Clearing site data or switching
+browsers starts a new, empty history. Because the client controls the ID, scan rate limiting is
+keyed by IP address, not session ID (see `backend/rate_limiter.py`).
+
 ## Running it locally
 
 **Backend:**
@@ -58,7 +126,8 @@ npm run dev
 - Sites with bot/automation detection (Cloudflare challenge pages, AWS WAF, etc.) may return a
   challenge page instead of real content, producing misleadingly sparse results. Not currently
   flagged in the output.
-- No persistence yet :  each scan is a one-off; nothing is stored between requests.
+- History is tied to an anonymous, per-browser session ID rather than user accounts (see
+  [Scan history](#scan-history-postgresql-and-session-ids)).
 
 ## Roadmap
 
