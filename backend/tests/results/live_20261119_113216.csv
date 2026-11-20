@@ -1,0 +1,31 @@
+id,url,category,outcome,detail,status,final_url,score,grade,likelihood,impact,third_party_domains,cookies,score_problems,duration_s
+1,https://www.walmart.com/,retail,bot_blocked,challenge host collector-pxu6b0qd2s.px-cloud.net; challenge host ift.px-cloud.net,200,https://www.walmart.com/,,,,,3,17,,12.1
+2,https://www.target.com/,retail,bot_blocked,challenge host captcha.px-cdn.net; challenge host client.px-cloud.net; challenge host collector-pxgwpp4wus.px-cloud.net; challenge host ift.px-cloud.net; challenge host ri.px-cloud.net,200,https://www.target.com/,,,,,14,29,,12.4
+28,https://www.ticketmaster.com/,tickets_travel,bot_blocked,HTTP 403,403,https://www.ticketmaster.com/,,,,,1,1,,11.6
+29,https://www.stubhub.com/,tickets_travel,bot_blocked,HTTP 403; challenge host ct.captcha-delivery.com; challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,403,https://www.stubhub.com/,,,,,3,1,,11.6
+43,https://www.chase.com/,finance,ok,,200,https://www.chase.com/,70,C,3.2,9.0,2,7,,12.8
+44,https://www.wellsfargo.com/,finance,ok,,200,https://www.wellsfargo.com/,40,D,2.8,19.0,3,30,,5.8
+57,https://www.indeed.com/,jobs_real_estate,bot_blocked,HTTP 403,403,https://www.indeed.com/,,,,,0,3,,4.0
+58,https://www.glassdoor.com/,jobs_real_estate,bot_blocked,challenge host challenges.cloudflare.com,401,https://www.glassdoor.com/member/profile/login?reason=bot-detection&postLoginUrl=https%3A%2F%2Fwww.glassdoor.com%2F&rayid=a5d1a2b73ac15c0c-SEA,,,,,4,5,,3.8
+67,https://www.reddit.com/,social_community,ok,,200,https://www.reddit.com/?solution=6ea648a1f336c45d6ea648a1f336c45d&js_challenge=1&jsc_token=2824be10929bdc604753c70a67a1c3311ff92a8ec2f3a75d1823754d741b5ba8&jsc_orig_r=,82,B,0,6.0,0,2,,3.5
+68,https://www.quora.com/,social_community,bot_blocked,HTTP 403; challenge host challenges.cloudflare.com,403,https://www.quora.com/,,,,,1,0,,3.6
+75,https://www.nytimes.com/,news,bot_blocked,HTTP 403; challenge host ct.captcha-delivery.com; challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,403,https://www.nytimes.com/,,,,,3,7,,7.3
+76,https://www.wsj.com/,news,bot_blocked,challenge host ct.captcha-delivery.com; challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,401,https://www.wsj.com/,,,,,3,1,,7.0
+83,https://www.livenation.com/,retail_travel_auto,ok,,200,https://www.livenation.com/,75,B,15.8,3.0,10,0,,13.2
+84,https://www.vividseats.com/,retail_travel_auto,ok,,200,https://www.vividseats.com/,46,D,0,18.0,0,5,,6.5
+101,https://www.uw.edu/,edu,ok,,200,https://www.washington.edu/,0,F,25,25,36,41,,20.9
+102,https://www.uwb.edu/,edu,ok,,200,https://www.uwb.edu/,0,F,25,25,31,38,,16.4
+108,https://www.usa.gov/,gov,ok,,200,https://www.usa.gov/,24,F,18.6,19.0,8,5,,8.0
+109,https://www.irs.gov/,gov,ok,,200,https://www.irs.gov/,33,F,18.6,16.0,8,6,,8.0
+115,https://info.cern.ch/,small,ok,,200,https://info.cern.ch/,25,F,0,25,0,0,,5.3
+116,https://neverssl.com/,small,load_failed,Page.goto: net::ERR_EMPTY_RESPONSE at https://neverssl.com/,,,,,,,,,,6.4
+121,https://www.webmd.com/,health,ok,,200,https://www.webmd.com/,0,F,25,25,50,52,,13.2
+122,https://www.mayoclinic.org/,health,bot_blocked,HTTP 403,403,https://www.mayoclinic.org/,,,,,0,2,,6.2
+128,https://www.google.com/,major_platforms,ok,,200,https://www.google.com/,37,F,0,21.0,0,3,,5.2
+129,https://www.youtube.com/,major_platforms,ok,,200,https://www.youtube.com/,91,A,0,3.0,0,7,,7.2
+137,https://www.netflix.com/,streaming_entertainment,ok,,200,https://www.netflix.com/,26,F,7.6,22.0,4,10,,6.5
+138,https://www.spotify.com/,streaming_entertainment,ok,,200,https://open.spotify.com/,53,D,14.4,11.0,7,4,,8.8
+146,https://www.doordash.com/,food_delivery,bot_blocked,HTTP 403; challenge host challenges.cloudflare.com; challenge host hagen.challenges.cloudflare.com,403,https://www.doordash.com/,,,,,2,1,,6.4
+150,https://www.match.com/,dating,bot_blocked,HTTP 403,403,https://www.match.com/,,,,,0,1,,5.4
+154,https://www.verizon.com/,telecom_insurance,ok,,200,https://www.verizon.com/,0,F,25,25,34,71,,10.1
+160,https://www.seattletimes.com/,local_news,bot_blocked,HTTP 403,403,https://www.seattletimes.com/,,,,,0,0,,4.9

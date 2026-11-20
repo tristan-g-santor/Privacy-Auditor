@@ -1,46 +1,105 @@
 {
-  "category_weights": {
-    "Advertising": 3,
-    "Session Replay": 3,
-    "Analytics": 2,
-    "CDP": 2,
-    "Unclassified": 1
+  "version": "owasp-rr-2",
+  "_about": "OWASP Risk Rating Methodology: every factor is rated 0-9, likelihood and impact are the (weighted) average of their factors, each average becomes LOW (<3) / MEDIUM (<6) / HIGH, and the severity matrix combines the two levels. Curves are [input, rating] points joined by straight lines; inputs past the last point get the last rating.",
+
+  "levels": { "low_below": 3, "medium_below": 6 },
+
+  "likelihood_factors": {
+    "tracking_load": {
+      "weight": 3,
+      "_about": "sum over tracker domains of category weight x prevalence modifier (more and more widespread trackers = higher). Weighted 3x so the amount of tracking drives likelihood; the three 'worst single tracker' factors below would otherwise max out on one Google tag",
+      "curve": [[0, 0], [3, 2], [12, 4], [30, 6], [60, 8], [100, 9]]
+    },
+    "tracker_severity": {
+      "weight": 1,
+      "_about": "the most invasive tracking category present on the page"
+    },
+    "tracker_reach": {
+      "weight": 1,
+      "_about": "highest prevalence among tracking companies present (how much of the web that company can see)",
+      "curve": [[0, 0], [0.02, 2], [0.1, 5], [0.3, 7], [0.6, 9]]
+    },
+    "fingerprinting": {
+      "weight": 1,
+      "_about": "highest Tracker Radar fingerprinting score (0-3) among tracker domains",
+      "curve": [[0, 0], [1, 3], [2, 6], [3, 9]]
+    }
   },
-  "prevalence_thresholds": {
-    "high": 0.5,
-    "medium": 0.2
+
+  "impact_factors": {
+    "data_leakage": {
+      "weight": 1,
+      "_about": "share of leak-limiting headers missing on the main page, weighted",
+      "headers": { "content-security-policy": 4, "referrer-policy": 3, "permissions-policy": 2 }
+    },
+    "transport_security": {
+      "weight": 1,
+      "_about": "TLS version of the main page plus a penalty for missing HSTS, capped at 9",
+      "tls": { "TLS 1.3": 0, "QUIC": 0, "TLS 1.2": 2, "TLS 1.1": 9, "TLS 1.0": 9, "none": 9, "unknown": 2 },
+      "missing_hsts": 3
+    },
+    "cookie_protection": {
+      "weight": 1,
+      "_about": "average weakness of first-party cookies (a share, so many cookies are not punished for the count alone)",
+      "flags": { "secure": 3, "httpOnly": 3, "sameSite_none": 2 }
+    },
+    "framing_protection": {
+      "weight": 1,
+      "_about": "rating when neither X-Frame-Options nor CSP frame-ancestors is set",
+      "missing": 6
+    }
   },
-  "prevalence_modifiers": {
-    "none": 1.0,
-    "high": 1.5,
-    "medium": 1.2,
-    "low": 0.8
+
+  "category_severity": {
+    "_about": "0-9 rating per Tracker Radar category; a tracker counts as 'tracking' at or above tracking_threshold",
+    "Session Replay": 9,
+    "Advertising": 8,
+    "Ad Motivated Tracking": 8,
+    "Action Pixels": 7,
+    "Third-Party Analytics Marketing": 6,
+    "CDP": 6,
+    "Analytics": 5,
+    "Audience Measurement": 5,
+    "Unclassified": 2,
+    "other": 1
   },
-  "header_weights": {
-    "content-security-policy": 10,
-    "strict-transport-security": 8,
-    "x-frame-options": 5,
-    "referrer-policy": 3,
-    "permissions-policy": 3
+  "tracking_threshold": 5,
+
+  "tracking_load": {
+    "_about": "each tracker domain adds weight (from its category rating 0-9, via this curve) times a prevalence modifier",
+    "category_weight_curve": [[0, 0], [1, 0.5], [2, 1], [5, 2], [7, 3], [9, 3]],
+    "prevalence_thresholds": { "high": 0.5, "medium": 0.2 },
+    "prevalence_modifiers": { "none": 1.0, "high": 1.5, "medium": 1.2, "low": 0.8 }
   },
-  "cookie_weights": {
-    "httpOnly": 3,
-    "secure": 3,
-    "sameSite": 2
+
+  "severity_matrix": {
+    "_about": "rows = impact level, columns = likelihood level (OWASP table)",
+    "HIGH":   { "LOW": "Medium", "MEDIUM": "High",   "HIGH": "Critical" },
+    "MEDIUM": { "LOW": "Low",    "MEDIUM": "Medium", "HIGH": "High" },
+    "LOW":    { "LOW": "Note",   "MEDIUM": "Low",    "HIGH": "Medium" }
   },
-  "tls_weights": {
-    "TLS 1.0": 15,
-    "TLS 1.1": 15,
-    "TLS 1.2": 3
+
+  "grades": {
+    "_about": "severity -> letter grade and its 0-100 band; the number moves inside the band by (likelihood + impact) / 18",
+    "Note":     { "grade": "A", "band": [90, 100] },
+    "Low":      { "grade": "B", "band": [75, 89] },
+    "Medium":   { "grade": "C", "band": [60, 74] },
+    "High":     { "grade": "D", "band": [40, 59] },
+    "Critical": { "grade": "F", "band": [0, 39] }
   },
-  "likelihood_cap": 25,
-  "impact_cap": 25,
-  "likelihood_weight": 0.25,
-  "impact_weight": 0.75,
-  "grade_thresholds": {
-    "A": 90,
-    "B": 75,
-    "C": 60,
-    "D": 40
+
+  "owasp_top10": {
+    "_about": "OWASP Top 10 (2021) category per finding - change the edition here if your course uses 2025",
+    "missing_csp": "A05:2021 Security Misconfiguration",
+    "missing_referrer_policy": "A05:2021 Security Misconfiguration",
+    "missing_permissions_policy": "A05:2021 Security Misconfiguration",
+    "missing_framing_protection": "A05:2021 Security Misconfiguration",
+    "weak_tls": "A02:2021 Cryptographic Failures",
+    "missing_hsts": "A02:2021 Cryptographic Failures",
+    "cookie_not_secure": "A02:2021 Cryptographic Failures",
+    "cookie_not_httponly": "A05:2021 Security Misconfiguration",
+    "cookie_samesite_none": "A05:2021 Security Misconfiguration",
+    "third_party_tracking": "Privacy (not a Top 10 category)",
+    "fingerprinting": "Privacy (not a Top 10 category)"
   }
 }

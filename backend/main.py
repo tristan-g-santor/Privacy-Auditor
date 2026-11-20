@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Header, Request
 import rate_limiter
 from fastapi.middleware.cors import CORSMiddleware
-from scanner.engine_populate import scan
+from scanner.engine_populate import scan, start_browser, stop_browser
 from entity_scoring import compute_score
 from dotenv import load_dotenv
 from scanner.url_guard import BlockedURLError
@@ -30,9 +30,11 @@ async def lifespan(app):
         logger.warning("DATABASE_URL not set - scans will not be saved to history")
     if not await category_cache.init_cache():
         logger.warning("REDIS_URL not set - category lookups will not be cached")
+    await start_browser()  # one shared Chromium; each scan opens its own context in it
     try:
         yield
     finally:
+        await stop_browser()
         await db.close_db()
         await category_cache.close_cache()
 
@@ -87,7 +89,10 @@ async def run_scan(url: str, request: Request, x_session_id: str = Header(...)):
     #result dict
     result["score"] = score_result["score"]
     result["grade"] = score_result["grade"]
-    result["breakdown"] = score_result["breakdown"]
+    result["severity"] = score_result["severity"]        # OWASP: Note / Low / Medium / High / Critical
+    result["breakdown"] = score_result["breakdown"]      # likelihood + impact (0-9), levels, every factor
+    result["findings"] = score_result["findings"]        # each problem, labelled with its OWASP Top 10 category
+    result["scoring_version"] = score_result["scoring_version"]
     result["trackers"] = score_result["trackers"]
     result["third_party_domains"] = sorted(result["third_party_domains"])
     result["first_party_domains"] = sorted(result["first_party_domains"])

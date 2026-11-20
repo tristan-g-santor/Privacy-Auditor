@@ -1,7 +1,54 @@
 import asyncio, ipaddress, json, os, tldextract #built in library to write code using async/wait
 from scanner.url_guard import validate_url, resolve_public, BlockedURLError
 from urllib.parse import urlparse #breaks down the components into a string (protocol, domain, and path)
-from playwright.async_api import async_playwright # this lets you launch the browser instance
+from playwright.async_api import async_playwright, Error as PlaywrightError # this lets you launch the browser instance
+
+# Navigation timing. goto() returns at "domcontentloaded" (HTML parsed) instead of "load" (every
+# image, ad and pixel finished) - ad-heavy sites often never reach "load", which timed the whole
+# scan out. The settle wait then gives deferred trackers time to fire before we collect.
+# Budget: goto (20 s) + settle (3 s) + collection stays under the server's 30 s scan timeout.
+GOTO_TIMEOUT_MS = int(os.environ.get("SCAN_GOTO_TIMEOUT_MS", "20000"))
+SETTLE_MS = int(os.environ.get("SCAN_SETTLE_MS", "3000"))
+
+# Shared browser: one Chromium for the whole server, started by FastAPI's lifespan (start_browser).
+# Each scan gets its own browser context - a fresh incognito-style profile with its own cookies,
+# cache and storage - so scans can't see each other's data. Launching Chromium per scan cost
+# ~1-2 s and ~300 MB each; a context costs a fraction of that.
+# If start_browser() was never called (tests, scripts), scan() falls back to its own Chromium.
+_playwright = None
+_browser = None
+_browser_lock = None
+
+
+async def start_browser():
+    global _playwright, _browser, _browser_lock
+    if _browser is not None:
+        return
+    _browser_lock = asyncio.Lock()  # created here so it belongs to the running event loop
+    _playwright = await async_playwright().start()
+    _browser = await _playwright.chromium.launch()
+
+
+async def stop_browser():
+    global _playwright, _browser, _browser_lock
+    try:
+        if _browser is not None:
+            await _browser.close()
+    except PlaywrightError:
+        pass  # already gone
+    finally:
+        if _playwright is not None:
+            await _playwright.stop()
+        _playwright = _browser = _browser_lock = None
+
+
+async def _shared_browser():
+    """The shared browser, relaunched first if Chromium crashed."""
+    global _browser
+    async with _browser_lock:  # so two scans noticing a crash don't both relaunch
+        if not _browser.is_connected():
+            _browser = await _playwright.chromium.launch()
+    return _browser
 
 
 
@@ -99,8 +146,12 @@ async def scan(url):
         if req_domain:
             seen_hosts.add(req_domain)
 
+        try:
+            headers = await response.all_headers() #hardcoded list of header names to consider
+            security_details = await response.security_details()
+        except PlaywrightError:
+            return  # the context closed while this late response was still being read
 
-        headers = await response.all_headers() #hardcoded list of header names to consider
         found = {} #collects all matching headers for specific response
         for h in SECURITY_HEADERS_TO_CHECK:
             if h in headers:
@@ -110,60 +161,65 @@ async def scan(url):
             result["security_headers"].setdefault(req_domain, {}).update(found)
 
         #TLS config
-        security_details = await response.security_details()
         if security_details:
             result["tls_info"][req_domain] = security_details
 
-    #Start playwright as p
-    #navigate the website and
-    #core engine
-    async with async_playwright() as p:
-        #launch a new browser and new page to setup and track network traffic
-        #need to change instead of launching everytime instead of startup 
-        #need to be aware of that
-        browser = await p.chromium.launch()
+    #core engine: one fresh context (own cookies/cache/storage) per scan, always closed afterwards
+    async def collect(browser):
         context = await browser.new_context(service_workers="block")
-        await context.route("**/*", guard_request)
-        page = await context.new_page()
-        page.on("request", lambda req: requested_hosts.add(urlparse(req.url).hostname))
-        page.on("response", handle_responses)
+        try:
+            await context.route("**/*", guard_request)
+            page = await context.new_page()
+            page.on("request", lambda req: requested_hosts.add(urlparse(req.url).hostname))
+            page.on("response", handle_responses)
 
-        main_response = await page.goto(url)
-        if main_response:
-            main_headers = await main_response.all_headers()
-            result["main_document"] = {
-                "url": main_response.url,   
-                "status": main_response.status,
-                "security_headers": {
-                    h: main_headers[h] for h in SECURITY_HEADERS_TO_CHECK if h in main_headers
-                },
-            }
-        result["cookies"] = await context.cookies()
+            main_response = await page.goto(url, wait_until="domcontentloaded", timeout=GOTO_TIMEOUT_MS)
+            await page.wait_for_timeout(SETTLE_MS)  # let deferred trackers, ads and beacons fire
 
+            if main_response:
+                main_headers = await main_response.all_headers()
+                result["main_document"] = {
+                    "url": main_response.url,
+                    "status": main_response.status,
+                    "security_headers": {
+                        h: main_headers[h] for h in SECURITY_HEADERS_TO_CHECK if h in main_headers
+                    },
+                }
+            result["cookies"] = await context.cookies()
 
-        result["final_url"] = page.url
-        site_etld1 = tldextract.extract(urlparse(page.url).hostname or "").top_domain_under_public_suffix
+            result["final_url"] = page.url
+            site_etld1 = tldextract.extract(urlparse(page.url).hostname or "").top_domain_under_public_suffix
 
-        for host in seen_hosts:
-            request_etld1 = tldextract.extract(host).top_domain_under_public_suffix
-            category = classify_host(host, request_etld1, site_etld1)
-            if category == "third_party":
-                result["third_party_domains"].add(host)
-            elif category == "first_party":
-                result["first_party_domains"].add(host)
-            else:
-                result["unknown_hosts"].add(host)
+            for host in seen_hosts:
+                request_etld1 = tldextract.extract(host).top_domain_under_public_suffix
+                category = classify_host(host, request_etld1, site_etld1)
+                if category == "third_party":
+                    result["third_party_domains"].add(host)
+                elif category == "first_party":
+                    result["first_party_domains"].add(host)
+                else:
+                    result["unknown_hosts"].add(host)
 
+            #Layer 3: any host reached through a redirect hop must also be public
+            for host in requested_hosts - checked_hosts.keys():
+                if host and not await is_allowed(host):
+                    raise BlockedURLError(f"Site redirected to a non-public address ({host})")
+        finally:
+            try:
+                await context.close()
+            except PlaywrightError:
+                pass  # browser crashed mid-scan; the original error is what matters
 
-        await page.wait_for_timeout(500)  # let any trailing response handlers finish
-
-        #
-        for host in requested_hosts - checked_hosts.keys():
-            if host and not await is_allowed(host):
-                raise BlockedURLError(f"Site redirected to a non-public address ({host})")
-
-
-        await browser.close()
+    if _browser is not None:
+        await collect(await _shared_browser())
+    else:
+        # no shared browser (tests, scripts): launch a private one just for this scan
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            try:
+                await collect(browser)
+            finally:
+                await browser.close()
 
     return result
 

@@ -1,0 +1,61 @@
+id,url,category,outcome,detail,status,final_url,score,grade,severity,likelihood,likelihood_level,impact,impact_level,tracking_load,tracker_severity,tracker_reach,fingerprinting,data_leakage,transport_security,cookie_protection,framing_protection,third_party_domains,tracking_domains,cookies,score_problems,duration_s
+1,https://www.walmart.com/,retail,bot_blocked,challenge host collector-pxu6b0qd2s.px-cloud.net; challenge host ift.px-cloud.net,200,https://www.walmart.com/,,,,,,,,,,,,,,,,3,,16,,14.4
+2,https://www.target.com/,retail,bot_blocked,challenge host captcha.px-cdn.net; challenge host client.px-cloud.net; challenge host collector-pxgwpp4wus.px-cloud.net; challenge host ift.px-cloud.net; challenge host ri.px-cloud.net,200,https://www.target.com/,,,,,,,,,,,,,,,,14,,29,,15.2
+3,https://www.bestbuy.com/,retail,timeout,no result within the timeout,,,,,,,,,,,,,,,,,,,,,,20.3
+4,https://www.homedepot.com/,retail,bot_blocked,challenge host client.px-cloud.net; challenge host collector-pxj770cp7y.px-cloud.net; challenge host ift.px-cloud.net,200,https://www.homedepot.com/,,,,,,,,,,,,,,,,22,,37,,6.2
+28,https://www.ticketmaster.com/,tickets_travel,bot_blocked,HTTP 403,403,https://www.ticketmaster.com/,,,,,,,,,,,,,,,,2,,6,,3.7
+29,https://www.stubhub.com/,tickets_travel,bot_blocked,HTTP 403; challenge host ct.captcha-delivery.com; challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,403,https://www.stubhub.com/,,,,,,,,,,,,,,,,3,,1,,3.9
+30,https://www.seatgeek.com/,tickets_travel,bot_blocked,HTTP 403; challenge host ct.captcha-delivery.com; challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,403,https://www.seatgeek.com/,,,,,,,,,,,,,,,,3,,3,,5.5
+31,https://www.eventbrite.com/,tickets_travel,ok,,200,https://www.eventbrite.com/,44,D,High,8.71,HIGH,5.08,MEDIUM,7.85,9,9,9.0,9.0,0,5.34,6,28,14,40,,9.8
+43,https://www.chase.com/,finance,ok,,200,https://www.chase.com/,84,B,Low,3.84,MEDIUM,2.0,LOW,2.04,5,2.31,6.0,3.0,0,5.0,0,2,2,18,,5.4
+44,https://www.wellsfargo.com/,finance,ok,,200,https://www.wellsfargo.com/,66,C,Medium,7.8,HIGH,2.1,LOW,5.19,8,9,9.0,5.0,0,3.41,0,12,4,41,,8.2
+45,https://www.bankofamerica.com/,finance,bot_blocked,HTTP 403,403,https://www.bankofamerica.com/,,,,,,,,,,,,,,,,0,,3,,4.9
+46,https://www.capitalone.com/,finance,ok,,200,https://www.capitalone.com/,65,C,Medium,8.08,HIGH,2.95,LOW,6.31,8,9,9.0,6.0,0,5.78,0,14,13,34,,7.4
+57,https://www.indeed.com/,jobs_real_estate,bot_blocked,HTTP 403,403,https://www.indeed.com/,,,,,,,,,,,,,,,,0,,3,,4.0
+58,https://www.glassdoor.com/,jobs_real_estate,bot_blocked,HTTP 401 (login/bot wall on a public homepage); final URL contains 'bot-detection'; challenge host challenges.cloudflare.com,401,https://www.glassdoor.com/member/profile/login?reason=bot-detection&postLoginUrl=https%3A%2F%2Fwww.glassdoor.com%2F&rayid=a5d39498daca6e84-SEA,,,,,,,,,,,,,,,,4,,3,,3.9
+59,https://www.linkedin.com/,jobs_real_estate,bot_blocked,HTTP 403; challenge host challenges.cloudflare.com; challenge host hagen.challenges.cloudflare.com,403,https://www.linkedin.com/,,,,,,,,,,,,,,,,2,,1,,3.6
+60,https://www.upwork.com/,jobs_real_estate,bot_blocked,HTTP 403,403,https://www.upwork.com/,,,,,,,,,,,,,,,,0,,3,,3.5
+67,https://www.reddit.com/,social_community,bot_blocked,final URL contains 'js_challenge',200,https://www.reddit.com/?solution=8ad83b4aa292cbfc8ad83b4aa292cbfc&js_challenge=1&jsc_token=2824be10929bdc604753c70a67a1c331a8a2a5b4dbb6bb61983861a36a36888c&jsc_orig_r=,,,,,,,,,,,,,,,,0,,2,,3.4
+68,https://www.quora.com/,social_community,bot_blocked,HTTP 403; challenge host challenges.cloudflare.com; challenge host hagen.challenges.cloudflare.com,403,https://www.quora.com/,,,,,,,,,,,,,,,,2,,0,,5.1
+69,https://www.medium.com/,social_community,bot_blocked,HTTP 403; challenge host challenges.cloudflare.com,403,https://www.medium.com/,,,,,,,,,,,,,,,,1,,0,,4.8
+70,https://www.discord.com/,social_community,ok,,200,https://discord.com/,67,C,Medium,7.68,HIGH,1.76,LOW,4.73,8,9,9.0,3.0,0,4.05,0,9,3,15,,7.0
+75,https://www.nytimes.com/,news,bot_blocked,HTTP 403; challenge host ct.captcha-delivery.com; challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,403,https://www.nytimes.com/,,,,,,,,,,,,,,,,3,,7,,4.2
+76,https://www.wsj.com/,news,bot_blocked,HTTP 401 (login/bot wall on a public homepage); challenge host ct.captcha-delivery.com; challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,401,https://www.wsj.com/,,,,,,,,,,,,,,,,3,,1,,4.0
+77,https://www.washingtonpost.com/,news,bot_blocked,connection killed mid-load (typical Akamai bot block),,,,,,,,,,,,,,,,,,,,,,0.3
+78,https://www.bloomberg.com/,news,bot_blocked,HTTP 403; challenge host captcha.px-cloud.net; challenge host client.px-cloud.net; challenge host collector-px8fcgygk4.px-cloud.net; challenge host ift.px-cloud.net; challenge host ri.px-cloud.net,403,https://www.bloomberg.com/,,,,,,,,,,,,,,,,9,,13,,4.0
+83,https://www.livenation.com/,retail_travel_auto,ok,,200,https://www.livenation.com/,68,C,Medium,7.58,HIGH,0.5,LOW,4.33,8,9,9.0,0.0,2,0,0,10,2,0,,6.9
+84,https://www.vividseats.com/,retail_travel_auto,ok,,200,https://www.vividseats.com/,86,B,Low,0.0,LOW,4.2,MEDIUM,0,0,0,0,6.0,0,4.78,6,0,0,5,,6.0
+85,https://www.hotels.com/,retail_travel_auto,bot_blocked,connection killed mid-load (typical Akamai bot block),,,,,,,,,,,,,,,,,,,,,,0.4
+86,https://www.vrbo.com/,retail_travel_auto,bot_blocked,HTTP 429 (rate limited); challenge host geo.captcha-delivery.com; challenge host static.captcha-delivery.com,429,https://www.vrbo.com/,,,,,,,,,,,,,,,,2,,13,,7.6
+101,https://www.uw.edu/,edu,ok,,200,https://www.washington.edu/,44,D,High,8.69,HIGH,5.83,MEDIUM,8.75,8,9,9.0,9.0,3,5.34,6,34,24,35,,9.2
+102,https://www.uwb.edu/,edu,ok,,200,https://www.uwb.edu/,7,F,Critical,8.59,HIGH,6.19,HIGH,8.37,8,9,9.0,9.0,3,6.75,6,25,21,34,,7.2
+103,https://www.mit.edu/,edu,ok,,200,https://www.mit.edu/,68,C,Medium,6.38,HIGH,1.75,LOW,2.51,8,9,6.0,5.0,2,0,0,3,1,0,,7.0
+104,https://www.stanford.edu/,edu,ok,,200,https://www.stanford.edu/,67,C,Medium,8.36,HIGH,0.98,LOW,6.45,9,9,9.0,0.0,0,3.94,0,13,8,11,,5.2
+108,https://www.usa.gov/,gov,ok,,200,https://www.usa.gov/,48,D,High,7.18,HIGH,3.43,MEDIUM,4.73,9,9,6.0,9.0,0,4.72,0,8,6,5,,5.2
+109,https://www.irs.gov/,gov,ok,,200,https://www.irs.gov/,48,D,High,7.18,HIGH,3.33,MEDIUM,4.73,9,9,6.0,9.0,0,4.31,0,8,5,6,,4.2
+110,https://www.nasa.gov/,gov,ok,,200,https://www.nasa.gov/,48,D,High,6.89,HIGH,3.8,MEDIUM,4.56,8,9,6.0,9.0,0,6.19,0,6,5,6,,5.4
+111,https://www.cdc.gov/,gov,ok,,200,https://www.cdc.gov/index.html,47,D,High,6.63,HIGH,5.05,MEDIUM,3.51,8,9,6.0,9.0,0,5.22,6,3,2,11,,5.2
+115,https://info.cern.ch/,small,ok,,200,https://info.cern.ch/,86,B,Low,0.0,LOW,4.5,MEDIUM,0,0,0,0,9.0,3,0,6,0,0,0,,4.8
+116,http://neverssl.com/,small,timeout,no result within the timeout,,,,,,,,,,,,,,,,,,,,,,20.1
+117,https://paulgraham.com/,small,ok,,200,https://paulgraham.com/,84,B,Low,2.5,LOW,4.5,MEDIUM,2.0,2,0,6.0,9.0,3,0,6,3,0,0,,6.0
+121,https://www.webmd.com/,health,ok,,200,https://www.webmd.com/,44,D,High,8.75,HIGH,5.1,MEDIUM,9,8,9,9.0,5.0,3,6.4,6,120,89,132,,13.3
+122,https://www.mayoclinic.org/,health,bot_blocked,HTTP 403,403,https://www.mayoclinic.org/,,,,,,,,,,,,,,,,0,,2,,8.6
+123,https://www.cvs.com/,health,bot_blocked,HTTP 403,403,https://www.cvs.com/,,,,,,,,,,,,,,,,0,,27,,3.3
+128,https://www.google.com/,major_platforms,ok,,200,https://www.google.com/,87,B,Low,0.0,LOW,3.06,MEDIUM,0,0,0,0,7.0,3,2.25,0,0,0,3,,4.1
+129,https://www.youtube.com/,major_platforms,ok,,200,https://www.youtube.com/,67,C,Medium,7.67,HIGH,1.27,LOW,4.67,8,9,9.0,3.0,0,2.09,0,0,4,7,,7.1
+130,https://www.facebook.com/,major_platforms,ok,,200,https://www.facebook.com/,84,B,Low,5.54,MEDIUM,1.38,LOW,2.4,8,5.78,6.0,3.0,0,2.53,0,0,2,4,,6.3
+137,https://www.netflix.com/,streaming_entertainment,ok,,200,https://www.netflix.com/,48,D,High,7.19,HIGH,3.29,MEDIUM,2.77,8,9,9.0,9.0,0,4.18,0,4,1,8,,6.8
+138,https://www.spotify.com/,streaming_entertainment,ok,,200,https://open.spotify.com/,67,C,Medium,7.23,HIGH,1.81,LOW,2.93,8,9,9.0,5.0,0,2.25,0,5,1,4,,10.4
+139,https://www.twitch.tv/,streaming_entertainment,ok,,200,https://www.twitch.tv/,48,D,High,6.57,HIGH,3.46,MEDIUM,2.79,8,6.5,9.0,9.0,0,4.82,0,3,2,7,,10.8
+146,https://www.doordash.com/,food_delivery,bot_blocked,HTTP 403; challenge host challenges.cloudflare.com,403,https://www.doordash.com/,,,,,,,,,,,,,,,,1,,1,,9.2
+147,https://www.instacart.com/,food_delivery,ok,,200,https://www.instacart.com/,65,C,Medium,8.31,HIGH,2.8,LOW,7.23,8,9,9.0,5.0,0,6.22,0,20,14,28,,6.4
+148,https://www.ubereats.com/,food_delivery,bot_blocked,HTTP 403; challenge host challenges.cloudflare.com; challenge host hagen.challenges.cloudflare.com,403,https://www.ubereats.com/,,,,,,,,,,,,,,,,2,,1,,4.9
+150,https://www.match.com/,dating,bot_blocked,HTTP 403,403,https://www.match.com/,,,,,,,,,,,,,,,,0,,1,,4.6
+151,https://tinder.com/,dating,ok,,200,https://tinder.com/,87,B,Low,0.0,LOW,3.05,MEDIUM,0,0,0,0,6.0,0,6.19,0,0,0,4,,9.6
+152,https://hinge.co/,dating,ok,,200,https://hinge.co/,67,C,Medium,8.13,HIGH,1.51,LOW,6.51,8,9,9.0,0.0,0,6.03,0,18,10,17,,9.6
+154,https://www.verizon.com/,telecom_insurance,ok,,200,https://www.verizon.com/,68,C,Medium,6.07,HIGH,1.81,LOW,2.22,8,5.07,9.0,2.0,0,5.23,0,3,1,40,,9.1
+155,https://www.att.com/,telecom_insurance,ok,,200,https://www.att.com/,66,C,Medium,7.51,HIGH,2.5,LOW,4.06,8,9,9.0,6.0,0,3.98,0,7,4,30,,12.8
+156,https://www.t-mobile.com/,telecom_insurance,ok,,200,https://www.t-mobile.com/,66,C,Medium,7.08,HIGH,2.63,LOW,5.27,9,5.07,9.0,5.0,0,5.53,0,16,9,36,,12.7
+160,https://www.seattletimes.com/,local_news,bot_blocked,HTTP 403,403,https://www.seattletimes.com/,,,,,,,,,,,,,,,,0,,0,,10.9
+161,https://www.chicagotribune.com/,local_news,ok,,200,https://www.chicagotribune.com/,45,D,High,8.69,HIGH,4.94,MEDIUM,8.77,8,9,9.0,5.0,3,5.76,6,48,23,39,,25.1
+162,https://www.denverpost.com/,local_news,ok,,200,https://www.denverpost.com/,45,D,High,8.75,HIGH,4.16,MEDIUM,9,8,9,9.0,5.0,0,5.62,6,62,30,48,,24.4
